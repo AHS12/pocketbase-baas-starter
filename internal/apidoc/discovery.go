@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"ims-pocketbase-baas-starter/pkg/logger"
-	"strings"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -79,6 +78,8 @@ func (cd *CollectionDiscovery) DiscoverCollections() ([]CollectionInfo, error) {
 		return nil, fmt.Errorf("PocketBase app is nil")
 	}
 
+	log := logger.FromAppOrDefault(cd.app)
+
 	// Use PocketBase's built-in collection finder
 	collections, err := cd.app.FindAllCollections()
 	if err != nil {
@@ -98,21 +99,16 @@ func (cd *CollectionDiscovery) DiscoverCollections() ([]CollectionInfo, error) {
 		// Extract collection metadata from PocketBase collection
 		collectionInfo, err := cd.extractCollectionInfoFromPB(collection)
 		if err != nil {
-			logger.FromAppOrDefault(cd.app).Warn("Failed to extract metadata for collection", "collection", collection.Name, "error", err)
+			log.Warn("Failed to extract metadata for collection", "collection", collection.Name, "error", err)
 			continue
 		}
 
 		collectionInfos = append(collectionInfos, *collectionInfo)
 	}
 
-	logger.FromAppOrDefault(cd.app).Info("Discovered collections",
+	log.Info("Discovered collections",
 		"count", len(collectionInfos),
 		"skipped", len(skippedCollections))
-
-	if len(skippedCollections) > 0 {
-		logger.FromAppOrDefault(cd.app).Debug("Skipped collections",
-			"collections", strings.Join(skippedCollections, ", "))
-	}
 
 	return collectionInfos, nil
 }
@@ -195,11 +191,13 @@ func (cd *CollectionDiscovery) extractCollectionInfo(dbCol databaseCollection) (
 	// Initialize options
 	collectionInfo.Options = make(map[string]any)
 
+	log := logger.FromAppOrDefault(cd.app)
+
 	// Parse schema JSON to extract fields
 	if dbCol.Schema != "" {
 		fields, err := cd.parseSchemaFields(dbCol.Schema)
 		if err != nil {
-			logger.FromAppOrDefault(cd.app).Warn("Failed to parse schema for collection", "collection", dbCol.Name, "error", err)
+			log.Warn("Failed to parse schema for collection", "collection", dbCol.Name, "error", err)
 		} else {
 			collectionInfo.Fields = fields
 		}
@@ -209,7 +207,7 @@ func (cd *CollectionDiscovery) extractCollectionInfo(dbCol databaseCollection) (
 	if dbCol.Options != "" {
 		options, err := cd.parseOptionsJSON(dbCol.Options)
 		if err != nil {
-			logger.FromAppOrDefault(cd.app).Warn("Failed to parse options for collection", "collection", dbCol.Name, "error", err)
+			log.Warn("Failed to parse options for collection", "collection", dbCol.Name, "error", err)
 		} else {
 			collectionInfo.Options = options
 		}

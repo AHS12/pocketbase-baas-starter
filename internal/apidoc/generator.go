@@ -166,28 +166,29 @@ func NewGenerator(app *pocketbase.PocketBase, config Config) *Generator {
 
 // GenerateSpec generates the unified OpenAPI specification
 func (g *Generator) GenerateSpec() (*CombinedOpenAPISpec, error) {
-	logger.FromAppOrDefault(g.app).Info("Starting OpenAPI specification generation...")
+	log := logger.FromAppOrDefault(g.app)
+	log.Info("Starting OpenAPI specification generation...")
 
 	// Step 1: Discover collections
 	collections, err := g.discovery.DiscoverCollections()
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover collections: %w", err)
 	}
-	logger.FromAppOrDefault(g.app).Info("Discovered collections", "count", len(collections))
+	log.Info("Discovered collections", "count", len(collections))
 
 	// Step 2: Generate schemas for all collections
 	schemas, err := g.generateAllSchemas(collections)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate schemas: %w", err)
 	}
-	logger.FromAppOrDefault(g.app).Info("Generated schemas", "count", len(schemas))
+	log.Info("Generated schemas", "count", len(schemas))
 
 	// Step 3: Generate all routes
 	routes, err := g.routeGen.GetAllRoutes(collections)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate routes: %w", err)
 	}
-	logger.FromAppOrDefault(g.app).Info("Generated routes", "count", len(routes))
+	log.Info("Generated routes", "count", len(routes))
 
 	// Build specification
 	spec := &CombinedOpenAPISpec{
@@ -208,7 +209,7 @@ func (g *Generator) GenerateSpec() (*CombinedOpenAPISpec, error) {
 		Tags:       g.buildTags(collections, routes),
 	}
 
-	logger.FromAppOrDefault(g.app).Info("OpenAPI specification generated successfully")
+	log.Info("OpenAPI specification generated successfully")
 	return spec, nil
 }
 
@@ -231,36 +232,88 @@ func GenerateOpenAPI(app *pocketbase.PocketBase) (*CombinedOpenAPISpec, error) {
 // generateAllSchemas generates schemas for all collections
 func (g *Generator) generateAllSchemas(collections []CollectionInfo) (map[string]any, error) {
 	allSchemas := make(map[string]any)
+	log := logger.FromAppOrDefault(g.app)
 
 	for _, collection := range collections {
-		// Generate main collection schema
-		schema, err := g.schemaGen.GenerateCollectionSchema(collection)
+		// Check if schemaGen supports the optimized approach
+		schemaGenerator, ok := g.schemaGen.(*SchemaGenerator)
+		if !ok {
+			// Fallback to original approach if not a SchemaGenerator
+			// Generate main collection schema
+			schema, err := g.schemaGen.GenerateCollectionSchema(collection)
+			if err != nil {
+				log.Warn("Failed to generate schema for collection", "collection", collection.Name, "error", err)
+				continue
+			}
+			allSchemas[g.schemaGen.GetSchemaName(collection)] = schema
+
+			// Generate create schema
+			createSchema, err := g.schemaGen.GenerateCreateSchema(collection)
+			if err != nil {
+				log.Warn("Failed to generate create schema for collection", "collection", collection.Name, "error", err)
+			} else {
+				allSchemas[g.schemaGen.GetCreateSchemaName(collection)] = createSchema
+			}
+
+			// Generate update schema
+			updateSchema, err := g.schemaGen.GenerateUpdateSchema(collection)
+			if err != nil {
+				log.Warn("Failed to generate update schema for collection", "collection", collection.Name, "error", err)
+			} else {
+				allSchemas[g.schemaGen.GetUpdateSchemaName(collection)] = updateSchema
+			}
+
+			// Generate list response schema
+			listResponseSchema, err := g.schemaGen.GenerateListResponseSchema(collection)
+			if err != nil {
+				log.Warn("Failed to generate list response schema for collection", "collection", collection.Name, "error", err)
+			} else {
+				allSchemas[g.schemaGen.GetListResponseSchemaName(collection)] = listResponseSchema
+			}
+			continue
+		}
+
+		// Use optimized approach with SchemaGenerationContext
+		ctx, err := NewSchemaGenerationContext(
+			collection,
+			schemaGenerator.fieldMapper,
+			schemaGenerator.includeExamples,
+			schemaGenerator.includeSystem,
+		)
 		if err != nil {
-			logger.FromAppOrDefault(g.app).Warn("Failed to generate schema for collection", "collection", collection.Name, "error", err)
+			log.Warn("Failed to create schema context for collection", "collection", collection.Name, "error", err)
+			continue
+		}
+
+		// Generate all schemas using the pre-processed context
+		// Generate main collection schema
+		schema, err := ctx.GenerateCollectionSchema()
+		if err != nil {
+			log.Warn("Failed to generate schema for collection", "collection", collection.Name, "error", err)
 			continue
 		}
 		allSchemas[g.schemaGen.GetSchemaName(collection)] = schema
 
 		// Generate create schema
-		createSchema, err := g.schemaGen.GenerateCreateSchema(collection)
+		createSchema, err := ctx.GenerateCreateSchema()
 		if err != nil {
-			logger.FromAppOrDefault(g.app).Warn("Failed to generate create schema for collection", "collection", collection.Name, "error", err)
+			log.Warn("Failed to generate create schema for collection", "collection", collection.Name, "error", err)
 		} else {
 			allSchemas[g.schemaGen.GetCreateSchemaName(collection)] = createSchema
 		}
 
 		// Generate update schema
-		updateSchema, err := g.schemaGen.GenerateUpdateSchema(collection)
+		updateSchema, err := ctx.GenerateUpdateSchema()
 		if err != nil {
-			logger.FromAppOrDefault(g.app).Warn("Failed to generate update schema for collection", "collection", collection.Name, "error", err)
+			log.Warn("Failed to generate update schema for collection", "collection", collection.Name, "error", err)
 		} else {
 			allSchemas[g.schemaGen.GetUpdateSchemaName(collection)] = updateSchema
 		}
 
 		// Generate list response schema
-		listResponseSchema, err := g.schemaGen.GenerateListResponseSchema(collection)
+		listResponseSchema, err := ctx.GenerateListResponseSchema()
 		if err != nil {
-			logger.FromAppOrDefault(g.app).Warn("Failed to generate list response schema for collection", "collection", collection.Name, "error", err)
+			log.Warn("Failed to generate list response schema for collection", "collection", collection.Name, "error", err)
 		} else {
 			allSchemas[g.schemaGen.GetListResponseSchemaName(collection)] = listResponseSchema
 		}
