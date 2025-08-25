@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/core"
 )
 
 // LogLevel represents the severity level of a log message
@@ -42,50 +43,153 @@ type Logger interface {
 	Error(msg string, keysAndValues ...any)
 	SetStoreLogs(store bool)
 	IsStoringLogs() bool
+	FormatMessage(msg string, keysAndValues ...any) string
 }
 
-// loggerImpl implements the Logger interface
-type loggerImpl struct {
+// pbLogger implements the Logger interface
+type pbLogger struct {
 	pbApp     *pocketbase.PocketBase
 	storeLogs bool
 }
 
+// noopLogger is a no-op logger that only logs to stdout
+type noopLogger struct{}
+
 // singleton instance
 var (
-	instance Logger
-	once     sync.Once
+	instance     Logger
+	once         sync.Once
+	globalLogger Logger
 )
 
 // GetLogger returns the singleton logger instance
 func GetLogger(app *pocketbase.PocketBase) Logger {
 	once.Do(func() {
-		instance = &loggerImpl{
+		instance = &pbLogger{
 			pbApp:     app,
 			storeLogs: true, // Default to storing logs in DB
 		}
+		// Automatically set the global logger
+		SetGlobalLogger(instance)
 	})
 	return instance
 }
 
-// SetStoreLogs enables or disables storing logs in the database
-func (l *loggerImpl) SetStoreLogs(store bool) {
+// SetGlobalLogger sets the global logger instance
+func SetGlobalLogger(logger Logger) {
+	globalLogger = logger
+}
+
+// FromApp retrieves a logger instance from a core.App interface
+func FromApp(app core.App) Logger {
+	if pbApp, ok := app.(*pocketbase.PocketBase); ok {
+		return GetLogger(pbApp)
+	}
+	return nil
+}
+
+// FromAppOrDefault retrieves a logger instance from a core.App interface
+func FromAppOrDefault(app core.App) Logger {
+	if pbApp, ok := app.(*pocketbase.PocketBase); ok {
+		return GetLogger(pbApp)
+	}
+	// Return a no-op logger that only logs to stdout
+	return &noopLogger{}
+}
+
+// Package-level logging functions
+func Debug(msg string, keysAndValues ...any) {
+	if globalLogger != nil {
+		globalLogger.Debug(msg, keysAndValues...)
+	} else {
+		logWithLevel(DEBUG, msg, keysAndValues...)
+	}
+}
+
+func Info(msg string, keysAndValues ...any) {
+	if globalLogger != nil {
+		globalLogger.Info(msg, keysAndValues...)
+	} else {
+		logWithLevel(INFO, msg, keysAndValues...)
+	}
+}
+
+func Warn(msg string, keysAndValues ...any) {
+	if globalLogger != nil {
+		globalLogger.Warn(msg, keysAndValues...)
+	} else {
+		logWithLevel(WARN, msg, keysAndValues...)
+	}
+}
+
+func Error(msg string, keysAndValues ...any) {
+	if globalLogger != nil {
+		globalLogger.Error(msg, keysAndValues...)
+	} else {
+		logWithLevel(ERROR, msg, keysAndValues...)
+	}
+}
+
+// Implementation of Logger interface for pbLogger
+func (l *pbLogger) SetStoreLogs(store bool) {
 	l.storeLogs = store
 }
 
-// IsStoringLogs returns whether logs are being stored in the database
-func (l *loggerImpl) IsStoringLogs() bool {
+func (l *pbLogger) IsStoringLogs() bool {
 	return l.storeLogs
 }
 
+func (l *pbLogger) Debug(msg string, keysAndValues ...any) {
+	l.logWithLevel(DEBUG, msg, keysAndValues...)
+}
+
+func (l *pbLogger) Info(msg string, keysAndValues ...any) {
+	l.logWithLevel(INFO, msg, keysAndValues...)
+}
+
+func (l *pbLogger) Warn(msg string, keysAndValues ...any) {
+	l.logWithLevel(WARN, msg, keysAndValues...)
+}
+
+func (l *pbLogger) Error(msg string, keysAndValues ...any) {
+	l.logWithLevel(ERROR, msg, keysAndValues...)
+}
+
+func (l *pbLogger) FormatMessage(msg string, keysAndValues ...any) string {
+	return l.formatMessage(msg, keysAndValues...)
+}
+
+// Implementation of Logger interface for noopLogger
+func (n *noopLogger) Debug(msg string, keysAndValues ...any) {
+	logWithLevel(DEBUG, msg, keysAndValues...)
+}
+
+func (n *noopLogger) Info(msg string, keysAndValues ...any) {
+	logWithLevel(INFO, msg, keysAndValues...)
+}
+
+func (n *noopLogger) Warn(msg string, keysAndValues ...any) {
+	logWithLevel(WARN, msg, keysAndValues...)
+}
+
+func (n *noopLogger) Error(msg string, keysAndValues ...any) {
+	logWithLevel(ERROR, msg, keysAndValues...)
+}
+
+func (n *noopLogger) SetStoreLogs(store bool) {
+	// No-op
+}
+
+func (n *noopLogger) IsStoringLogs() bool {
+	return false
+}
+
+func (n *noopLogger) FormatMessage(msg string, keysAndValues ...any) string {
+	return formatMessage(msg, keysAndValues...)
+}
+
 // logWithLevel is a helper method that handles logging at different levels
-func (l *loggerImpl) logWithLevel(level LogLevel, msg string, keysAndValues ...any) {
-	// Format the message with key-value pairs
-	formattedMsg := l.formatMessage(msg, keysAndValues...)
-
-	// Always log to stdout using Go's default logger
-	log.Printf("[%s] %s", level.String(), formattedMsg)
-
-	// If storing logs is enabled and we have a PocketBase app, use its logger
+func (l *pbLogger) logWithLevel(level LogLevel, msg string, keysAndValues ...any) {
 	if l.storeLogs && l.pbApp != nil {
 		switch level {
 		case DEBUG:
@@ -100,8 +204,17 @@ func (l *loggerImpl) logWithLevel(level LogLevel, msg string, keysAndValues ...a
 	}
 }
 
+// logWithLevel is a helper function that logs to stdout only (for noopLogger and fallback)
+func logWithLevel(level LogLevel, msg string, keysAndValues ...any) {
+	// Format the message with key-value pairs
+	formattedMsg := formatMessage(msg, keysAndValues...)
+
+	// Only log to stdout for fallback cases
+	log.Printf("[%s] %s", level.String(), formattedMsg)
+}
+
 // formatMessage formats the log message with key-value pairs for stdout
-func (l *loggerImpl) formatMessage(msg string, keysAndValues ...any) string {
+func (l *pbLogger) formatMessage(msg string, keysAndValues ...any) string {
 	if len(keysAndValues) == 0 {
 		return msg
 	}
@@ -117,34 +230,19 @@ func (l *loggerImpl) formatMessage(msg string, keysAndValues ...any) string {
 	return result
 }
 
-// Debug logs a message at DEBUG level
-func (l *loggerImpl) Debug(msg string, keysAndValues ...any) {
-	l.logWithLevel(DEBUG, msg, keysAndValues...)
-}
-
-// Info logs a message at INFO level
-func (l *loggerImpl) Info(msg string, keysAndValues ...any) {
-	l.logWithLevel(INFO, msg, keysAndValues...)
-}
-
-// Warn logs a message at WARN level
-func (l *loggerImpl) Warn(msg string, keysAndValues ...any) {
-	l.logWithLevel(WARN, msg, keysAndValues...)
-}
-
-// Error logs a message at ERROR level
-func (l *loggerImpl) Error(msg string, keysAndValues ...any) {
-	l.logWithLevel(ERROR, msg, keysAndValues...)
-}
-
-// LogToDB directly logs to the PocketBase database (if needed for custom use cases)
-func (l *loggerImpl) LogToDB(level LogLevel, msg string, keysAndValues ...any) error {
-	if l.pbApp == nil {
-		return fmt.Errorf("pocketbase app not initialized")
+// formatMessage formats the log message with key-value pairs for stdout (standalone function)
+func formatMessage(msg string, keysAndValues ...any) string {
+	if len(keysAndValues) == 0 {
+		return msg
 	}
 
-	// This would require creating a custom logs collection in PocketBase
-	// For now, we'll just use the PocketBase logger which automatically stores logs
-	l.logWithLevel(level, msg, keysAndValues...)
-	return nil
+	result := msg
+	for i := 0; i < len(keysAndValues); i += 2 {
+		if i+1 < len(keysAndValues) {
+			key := keysAndValues[i]
+			value := keysAndValues[i+1]
+			result = fmt.Sprintf("%s %v=%v", result, key, value)
+		}
+	}
+	return result
 }

@@ -73,7 +73,7 @@ func TestLogLevelString(t *testing.T) {
 
 func TestFormatMessage(t *testing.T) {
 	app := pocketbase.New()
-	logger := GetLogger(app).(*loggerImpl)
+	logger := GetLogger(app).(*pbLogger)
 
 	// Test formatting with no key-value pairs
 	result := logger.formatMessage("Simple message")

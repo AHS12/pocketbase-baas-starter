@@ -41,6 +41,8 @@ func NewApp() *pocketbase.PocketBase {
 
 	// Initialize our logger
 	logger := logger.GetLogger(app)
+	logger.SetStoreLogs(true) // Enable storing logs in DB
+
 	logger.Info("Metrics provider initialized", "provider", metricsProvider != nil)
 
 	// Initialize job manager during app startup
