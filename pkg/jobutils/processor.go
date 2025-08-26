@@ -215,17 +215,46 @@ func (p *JobProcessor) validateJobRecord(record *core.Record) error {
 }
 
 // reserveJob updates the reserved_at timestamp to mark the job as being processed
-// Returns an error if the job is already reserved by another process
+// Uses optimistic locking to prevent race conditions
 func (p *JobProcessor) reserveJob(record *core.Record) error {
+	// Store original values for potential rollback
+	originalReservedAt := record.GetString("reserved_at")
+
+	// Check if already reserved (quick check to avoid unnecessary work)
+	if originalReservedAt != "" && p.isJobReserved(record) {
+		return fmt.Errorf("job %s is already reserved", record.Id)
+	}
+
+	// Reserve the job
 	now := time.Now()
 	record.Set("reserved_at", now.Format(time.RFC3339))
 
 	if err := p.app.Save(record); err != nil {
-		// This can happen in race conditions where another worker reserved the job simultaneously
-		if p.isJobReserved(record) {
-			return fmt.Errorf("job %s is already reserved by another process", record.Id)
+		// Restore original values on failure
+		record.Set("reserved_at", originalReservedAt)
+
+		// Check if the failure was due to concurrent reservation
+		freshRecord, freshErr := p.app.FindRecordById("queues", record.Id)
+		if freshErr == nil && freshRecord.GetString("reserved_at") != record.GetString("reserved_at") {
+			if p.isJobReserved(freshRecord) {
+				return fmt.Errorf("job %s was reserved by another worker", record.Id)
+			}
 		}
+
 		return fmt.Errorf("failed to reserve job %s: %w", record.Id, err)
+	}
+
+	// Verify reservation was successful (race condition detection)
+	freshRecord, err := p.app.FindRecordById("queues", record.Id)
+	if err != nil {
+		return fmt.Errorf("failed to verify reservation for job %s: %w", record.Id, err)
+	}
+
+	// Check if we actually got the reservation
+	if freshRecord.GetString("reserved_at") != record.GetString("reserved_at") {
+		// Someone else got it, restore our record and fail
+		record.Set("reserved_at", freshRecord.GetString("reserved_at"))
+		return fmt.Errorf("job %s was reserved by another worker", record.Id)
 	}
 
 	log.Info("Job reserved", "job_id", record.Id, "reserved_at", now)

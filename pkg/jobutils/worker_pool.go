@@ -279,15 +279,45 @@ func (w *Worker) isJobReserved(record *core.Record) bool {
 }
 
 func (w *Worker) reserveJob(record *core.Record) error {
+	// Store original values for potential rollback
+	originalReservedAt := record.GetString("reserved_at")
+
+	// Check if already reserved (quick check to avoid unnecessary work)
+	if originalReservedAt != "" && w.isJobReserved(record) {
+		return fmt.Errorf("job %s is already reserved", record.Id)
+	}
+
+	// Reserve the job
 	now := time.Now()
 	record.Set("reserved_at", now.Format(time.RFC3339))
 
+	// Attempt to save the reservation
 	if err := w.app.Save(record); err != nil {
-		// This can happen in race conditions where another worker reserved the job simultaneously
-		if w.isJobReserved(record) {
-			return fmt.Errorf("job %s is already reserved by another process", record.Id)
+		// Restore original values on failure
+		record.Set("reserved_at", originalReservedAt)
+
+		// Check if the failure was due to concurrent reservation
+		freshRecord, freshErr := w.app.FindRecordById("queues", record.Id)
+		if freshErr == nil && freshRecord.GetString("reserved_at") != record.GetString("reserved_at") {
+			if w.isJobReserved(freshRecord) {
+				return fmt.Errorf("job %s was reserved by another worker", record.Id)
+			}
 		}
+
 		return fmt.Errorf("failed to reserve job %s: %w", record.Id, err)
+	}
+
+	// Verify reservation was successful (race condition detection)
+	freshRecord, err := w.app.FindRecordById("queues", record.Id)
+	if err != nil {
+		return fmt.Errorf("failed to verify reservation for job %s: %w", record.Id, err)
+	}
+
+	// Check if we actually got the reservation
+	if freshRecord.GetString("reserved_at") != record.GetString("reserved_at") {
+		// Someone else got it, restore our record and fail
+		record.Set("reserved_at", freshRecord.GetString("reserved_at"))
+		return fmt.Errorf("job %s was reserved by another worker", record.Id)
 	}
 
 	log.Debug("Job reserved", "job_id", record.Id, "reserved_at", now)
