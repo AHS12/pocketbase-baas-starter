@@ -2,8 +2,8 @@ package route
 
 import (
 	"encoding/json"
-	"ims-pocketbase-baas-starter/pkg/common"
 	"ims-pocketbase-baas-starter/pkg/jobutils"
+	"ims-pocketbase-baas-starter/pkg/response"
 
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -24,7 +24,7 @@ func HandleUserExport(e *core.RequestEvent) error {
 
 	queuesCollection, err := e.App.FindCollectionByNameOrId("queues")
 	if err != nil {
-		return common.Response.InternalServerError(e, "Queue system unavailable", nil)
+		return response.InternalServerError(e, "Queue system unavailable", nil)
 	}
 
 	job := core.NewRecord(queuesCollection)
@@ -33,17 +33,17 @@ func HandleUserExport(e *core.RequestEvent) error {
 
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
-		return common.Response.InternalServerError(e, "Failed to create job", nil)
+		return response.InternalServerError(e, "Failed to create job", nil)
 	}
 	job.Set("payload", string(payloadJSON))
 
 	if err := e.App.Save(job); err != nil {
-		return common.Response.InternalServerError(e, "Failed to queue export job", nil)
+		return response.InternalServerError(e, "Failed to queue export job", nil)
 	}
 
 	data := map[string]any{
 		"job_id": job.Id,
 		"status": "queued",
 	}
-	return common.Response.OK(e, "User export job queued successfully", data)
+	return response.OK(e, "User export job queued successfully", data)
 }

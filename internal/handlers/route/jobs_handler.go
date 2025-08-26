@@ -1,7 +1,7 @@
 package route
 
 import (
-	"ims-pocketbase-baas-starter/pkg/common"
+	"ims-pocketbase-baas-starter/pkg/response"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
@@ -10,7 +10,7 @@ import (
 func HandleGetJobStatus(e *core.RequestEvent) error {
 	jobId := e.Request.PathValue("id")
 	if jobId == "" {
-		return common.Response.ValidationError(e, "Job ID is required", nil)
+		return response.ValidationError(e, "Job ID is required", nil)
 	}
 
 	status := getJobStatus(e.App, jobId)
@@ -21,26 +21,26 @@ func HandleGetJobStatus(e *core.RequestEvent) error {
 		"status": status,
 	}
 
-	return common.Response.OK(e, "Job status", data)
+	return response.OK(e, "Job status", data)
 }
 
 func HandleDownloadJobFile(e *core.RequestEvent) error {
 	jobId := e.Request.PathValue("id")
 	if jobId == "" {
-		return common.Response.ValidationError(e, "Job ID is required", nil)
+		return response.ValidationError(e, "Job ID is required", nil)
 	}
 
 	// Check if file exists in export_files
 	exportRecord, err := getJobFileRecord(e.App, jobId)
 	if err != nil {
-		return common.Response.NotFound(e, "Export file not found")
+		return response.NotFound(e, "Export file not found")
 	}
 
 	fileName := exportRecord.GetString("file")
 	basePath := exportRecord.BaseFilesPath()
 
 	// Use the new File response helper to serve the file
-	return common.Response.File(e, fileName, basePath)
+	return response.File(e, fileName, basePath)
 }
 
 func getJobFileRecord(app core.App, jobId string) (*core.Record, error) {

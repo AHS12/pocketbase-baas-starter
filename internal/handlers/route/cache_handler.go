@@ -2,7 +2,7 @@ package route
 
 import (
 	"ims-pocketbase-baas-starter/pkg/cache"
-	"ims-pocketbase-baas-starter/pkg/common"
+	"ims-pocketbase-baas-starter/pkg/response"
 	"time"
 
 	"github.com/pocketbase/pocketbase/core"
@@ -16,8 +16,8 @@ func HandleCacheStatus(e *core.RequestEvent) error {
 	// Get cache statistics
 	stats := cacheService.GetStats()
 
-	// Return cache status using common response helper
-	return common.Response.OK(e, "Cache status retrieved successfully", map[string]any{
+	// Return cache status using response helper
+	return response.OK(e, "Cache status retrieved successfully", map[string]any{
 		"status": "ok",
 		"stats":  stats,
 	})
@@ -31,8 +31,8 @@ func HandleCacheClear(e *core.RequestEvent) error {
 	// Clear all cache entries
 	cacheService.Flush()
 
-	// Return success response using common response helper
-	return common.Response.OK(e, "Cache cleared successfully", map[string]any{
+	// Return success response using response helper
+	return response.OK(e, "Cache cleared successfully", map[string]any{
 		"timestamp": time.Now().Format(time.RFC3339),
 	})
 }
