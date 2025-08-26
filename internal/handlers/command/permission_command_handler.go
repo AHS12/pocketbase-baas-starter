@@ -27,7 +27,6 @@ func HandleSyncPermissionsCommand(app *pocketbase.PocketBase, cmd *cobra.Command
 		return
 	}
 
-	// Track statistics
 	var createdCount, skippedCount int
 
 	// Process permissions in batches for better performance

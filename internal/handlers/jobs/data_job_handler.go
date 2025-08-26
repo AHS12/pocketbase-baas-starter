@@ -159,7 +159,6 @@ func (h *DataProcessingJobHandler) handleAggregateOperation(ctx *cronutils.CronE
 
 // handleExportOperation handles data export operations using typed payload
 func (h *DataProcessingJobHandler) handleExportOperation(ctx *cronutils.CronExecutionContext, job *jobutils.JobData, payload *jobutils.DataProcessingJobPayload) error {
-	ctx.LogDebug(payload.Data, "Handling export operation")
 
 	switch payload.Data.Source {
 	case jobutils.DataProcessingCollectionUsers:

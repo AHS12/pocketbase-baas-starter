@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestSaveToExportFiles(t *testing.T) {
+func TestSaveExportFile(t *testing.T) {
 	// This is a basic test structure for the file utility functions
 	// In a real implementation, you would set up a test database
 	// and mock PocketBase app instance
@@ -31,7 +31,7 @@ func TestSaveToExportFiles(t *testing.T) {
 		t.Error("Record count should be positive")
 	}
 
-	// Note: To test the actual SaveToExportFiles function, you would need:
+	// Note: To test the actual SaveExportFile function, you would need:
 	// 1. A test PocketBase instance
 	// 2. Test export_files collection
 	// 3. Mock filesystem
@@ -40,9 +40,9 @@ func TestSaveToExportFiles(t *testing.T) {
 	// app := test.NewTestApp()
 	// defer app.Cleanup()
 	//
-	// record, err := SaveToExportFiles(app, jobId, filename, fileData, recordCount)
+	// record, err := SaveExportFile(app, jobId, filename, fileData, recordCount)
 	// if err != nil {
-	//     t.Errorf("SaveToExportFiles failed: %v", err)
+	//     t.Errorf("SaveExportFile failed: %v", err)
 	// }
 	//
 	// if record == nil {
@@ -50,7 +50,7 @@ func TestSaveToExportFiles(t *testing.T) {
 	// }
 }
 
-func TestSaveToExportFilesWithUserId(t *testing.T) {
+func TestSaveExportFileWithUser(t *testing.T) {
 	// Test the variant that includes user ID
 	jobId := "test-job-456"
 	userId := "user-789"
@@ -104,5 +104,14 @@ func TestFileUtilityConstants(t *testing.T) {
 	// Verify collection constant
 	if DataProcessingCollectionUsers != "users" {
 		t.Errorf("Expected users collection to be 'users', got '%s'", DataProcessingCollectionUsers)
+	}
+
+	// Verify new constants
+	if ExportFilesCollectionName != "export_files" {
+		t.Errorf("Expected ExportFilesCollectionName to be 'export_files', got '%s'", ExportFilesCollectionName)
+	}
+
+	if DefaultFileExpirationDays != 30 {
+		t.Errorf("Expected DefaultFileExpirationDays to be 30, got %d", DefaultFileExpirationDays)
 	}
 }

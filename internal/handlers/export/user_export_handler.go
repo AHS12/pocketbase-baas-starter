@@ -54,7 +54,7 @@ func HandleUserExport(app *pocketbase.PocketBase, jobId string, payload *jobutil
 	log.Info("Generated CSV data", "job_id", jobId, "filename", filename, "file_size", len(csvData))
 
 	// Save the export file
-	if _, err := jobutils.SaveExportedJobFiles(app, jobId, filename, csvData, len(users)); err != nil {
+	if _, err := jobutils.SaveExportFile(app, jobId, filename, csvData, len(users)); err != nil {
 		log.Error("Failed to save export file", "job_id", jobId, "error", err)
 		return fmt.Errorf("failed to save export file: %w", err)
 	}
@@ -126,10 +126,10 @@ func convertUsersToCSV(app *pocketbase.PocketBase, users []*core.Record) ([]byte
 	// Write user data using pre-built maps
 	for _, user := range users {
 		// Get role names using the pre-built map
-		roleNames := getRoleNames(app, user, roleNameMap)
+		roleNames := getRoleNames(user, roleNameMap)
 
 		// Get permission slugs using the pre-built map
-		permissionSlugs := getPermissionSlugs(app, user, permissionSlugMap)
+		permissionSlugs := getPermissionSlugs(user, permissionSlugMap)
 
 		row := []string{
 			user.Id,
@@ -234,7 +234,7 @@ func buildPermissionSlugMap(app *pocketbase.PocketBase, users []*core.Record) (m
 }
 
 // getRoleNames extracts role names using optimized batch queries to avoid N+1 problem
-func getRoleNames(app *pocketbase.PocketBase, user *core.Record, roleNameMap map[string]string) string {
+func getRoleNames(user *core.Record, roleNameMap map[string]string) string {
 	roleIds := user.GetStringSlice("roles")
 	if len(roleIds) == 0 {
 		return ""
@@ -251,7 +251,7 @@ func getRoleNames(app *pocketbase.PocketBase, user *core.Record, roleNameMap map
 }
 
 // getPermissionSlugs extracts permission slugs using optimized batch queries to avoid N+1 problem
-func getPermissionSlugs(app *pocketbase.PocketBase, user *core.Record, permissionSlugMap map[string]string) string {
+func getPermissionSlugs(user *core.Record, permissionSlugMap map[string]string) string {
 	permissionIds := user.GetStringSlice("permissions")
 	if len(permissionIds) == 0 {
 		return ""
