@@ -1,13 +1,12 @@
 package cron
 
 import (
-	"fmt"
 	"time"
 
 	"ims-pocketbase-baas-starter/internal/jobs"
 	"ims-pocketbase-baas-starter/pkg/common"
 	"ims-pocketbase-baas-starter/pkg/cronutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 	"ims-pocketbase-baas-starter/pkg/metrics"
 
 	"github.com/pocketbase/dbx"
@@ -58,8 +57,6 @@ func HandleSystemQueue(app *pocketbase.PocketBase) {
 
 	// Process jobs concurrently if any are available
 	if len(queues) > 0 {
-		ctx.LogDebug(fmt.Sprintf("Processing %d jobs with %d workers", len(queues), maxWorkers), "Starting concurrent job processing")
-
 		errors := processor.ProcessJobsConcurrently(queues, maxWorkers)
 
 		// Count and log results
@@ -74,14 +71,11 @@ func HandleSystemQueue(app *pocketbase.PocketBase) {
 			}
 		}
 
-		logger := logger.GetLogger(app)
-		logger.Info("Job processing batch completed",
+		log.Info("Job processing batch completed",
 			"total_jobs", len(queues),
 			"successful", successCount,
 			"failed", failureCount,
 			"workers", maxWorkers)
-	} else {
-		ctx.LogDebug("No pending jobs in queue", "No jobs found to process")
 	}
 
 	ctx.LogEnd("System queue process operations completed successfully")

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"ims-pocketbase-baas-starter/pkg/jobutils"
-	applogger "ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -20,49 +20,46 @@ func HandleUserExport(app *pocketbase.PocketBase, jobId string, payload *jobutil
 	// Record start time for timeout checking
 	startTime := time.Now()
 
-	// Get logger instance
-	logger := applogger.GetLogger(app)
-
 	// Fetch all users from the database
 	users, err := fetchAllUsers(app)
 	if err != nil {
-		logger.Error("Failed to fetch users", "job_id", jobId, "error", err)
+		log.Error("Failed to fetch users", "job_id", jobId, "error", err)
 		return fmt.Errorf("failed to fetch users: %w", err)
 	}
 
-	logger.Info("Fetched users for export", "job_id", jobId, "user_count", len(users))
+	log.Info("Fetched users for export", "job_id", jobId, "user_count", len(users))
 
 	// Check if we have users to export
 	if len(users) == 0 {
-		logger.Warn("No users found to export", "job_id", jobId)
+		log.Warn("No users found to export", "job_id", jobId)
 		return fmt.Errorf("no users found to export")
 	}
 
 	// Check timeout before CSV conversion
 	if payload.Options.Timeout > 0 && time.Since(startTime).Seconds() > float64(payload.Options.Timeout) {
-		logger.Warn("User export timeout during CSV conversion", "job_id", jobId, "elapsed", time.Since(startTime))
+		log.Warn("User export timeout during CSV conversion", "job_id", jobId, "elapsed", time.Since(startTime))
 		return fmt.Errorf("export operation timed out")
 	}
 
 	// Convert users to CSV
 	csvData, err := convertUsersToCSV(app, users)
 	if err != nil {
-		logger.Error("Failed to convert users to CSV", "job_id", jobId, "error", err)
+		log.Error("Failed to convert users to CSV", "job_id", jobId, "error", err)
 		return fmt.Errorf("failed to convert users to CSV: %w", err)
 	}
 
 	// Generate filename with timestamp
 	filename := fmt.Sprintf("users_export_%s.csv", time.Now().Format("20060102_150405"))
 
-	logger.Info("Generated CSV data", "job_id", jobId, "filename", filename, "file_size", len(csvData))
+	log.Info("Generated CSV data", "job_id", jobId, "filename", filename, "file_size", len(csvData))
 
 	// Save the export file
-	if _, err := jobutils.SaveExportedJobFiles(app, jobId, filename, csvData, len(users)); err != nil {
-		logger.Error("Failed to save export file", "job_id", jobId, "error", err)
+	if _, err := jobutils.SaveExportFile(app, jobId, filename, csvData, len(users)); err != nil {
+		log.Error("Failed to save export file", "job_id", jobId, "error", err)
 		return fmt.Errorf("failed to save export file: %w", err)
 	}
 
-	logger.Info("User export completed successfully", "job_id", jobId, "filename", filename, "user_count", len(users))
+	log.Info("User export completed successfully", "job_id", jobId, "filename", filename, "user_count", len(users))
 
 	return nil
 }
@@ -129,10 +126,10 @@ func convertUsersToCSV(app *pocketbase.PocketBase, users []*core.Record) ([]byte
 	// Write user data using pre-built maps
 	for _, user := range users {
 		// Get role names using the pre-built map
-		roleNames := getRoleNames(app, user, roleNameMap)
+		roleNames := getRoleNames(user, roleNameMap)
 
 		// Get permission slugs using the pre-built map
-		permissionSlugs := getPermissionSlugs(app, user, permissionSlugMap)
+		permissionSlugs := getPermissionSlugs(user, permissionSlugMap)
 
 		row := []string{
 			user.Id,
@@ -237,7 +234,7 @@ func buildPermissionSlugMap(app *pocketbase.PocketBase, users []*core.Record) (m
 }
 
 // getRoleNames extracts role names using optimized batch queries to avoid N+1 problem
-func getRoleNames(app *pocketbase.PocketBase, user *core.Record, roleNameMap map[string]string) string {
+func getRoleNames(user *core.Record, roleNameMap map[string]string) string {
 	roleIds := user.GetStringSlice("roles")
 	if len(roleIds) == 0 {
 		return ""
@@ -254,7 +251,7 @@ func getRoleNames(app *pocketbase.PocketBase, user *core.Record, roleNameMap map
 }
 
 // getPermissionSlugs extracts permission slugs using optimized batch queries to avoid N+1 problem
-func getPermissionSlugs(app *pocketbase.PocketBase, user *core.Record, permissionSlugMap map[string]string) string {
+func getPermissionSlugs(user *core.Record, permissionSlugMap map[string]string) string {
 	permissionIds := user.GetStringSlice("permissions")
 	if len(permissionIds) == 0 {
 		return ""

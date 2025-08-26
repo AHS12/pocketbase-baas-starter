@@ -3,9 +3,8 @@ package jobs
 import (
 	"sync"
 
-	"ims-pocketbase-baas-starter/internal/handlers/jobs"
 	"ims-pocketbase-baas-starter/pkg/jobutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase"
 )
@@ -30,31 +29,23 @@ func GetJobManager() *JobManager {
 	return globalJobManager
 }
 
-// Initialize sets up the job processor with all handlers
+// Initialize sets up the job processor
 // This should be called once during application startup
 func (jm *JobManager) Initialize(app *pocketbase.PocketBase) error {
 	jm.mu.Lock()
 	defer jm.mu.Unlock()
 
 	if jm.initialized {
-		logger := logger.GetLogger(app)
-		logger.Debug("Job manager already initialized, skipping")
 		return nil
 	}
 
-	logger := logger.GetLogger(app)
-	logger.Info("Initializing job manager and processors")
+	log.Info("Initializing job manager and processors")
 
 	// Create the job processor
 	jm.processor = jobutils.NewJobProcessor(app)
 
-	// Initialize and register job handlers
-	if err := jobs.InitializeJobHandlers(app, jm.processor); err != nil {
-		return err
-	}
-
 	jm.initialized = true
-	logger.Info("Job manager initialization completed - ready for job processing")
+	log.Info("Job manager initialization completed - ready for job processing")
 
 	return nil
 }

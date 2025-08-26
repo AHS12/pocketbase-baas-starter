@@ -5,7 +5,7 @@ import (
 
 	"ims-pocketbase-baas-starter/internal/handlers/cron"
 	"ims-pocketbase-baas-starter/pkg/cronutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase"
 )
@@ -26,7 +26,6 @@ func RegisterCrons(app *pocketbase.PocketBase) {
 		panic("RegisterCrons: app cannot be nil")
 	}
 
-	log := logger.GetLogger(app)
 	log.Info("Starting cron job registration process")
 
 	// Define all cron jobs
@@ -45,6 +44,14 @@ func RegisterCrons(app *pocketbase.PocketBase) {
 			Enabled:     os.Getenv("ENABLE_CLEAR_EXPORT_FILES_CRON") != "false", // Enabled by default
 			Description: "Delete the expired job generated export files",
 		},
+		// Add more cron jobs here as needed:
+		// {
+		//     ID:          "example_cron",
+		//     CronExpr:    "0 3 * * *", // every day at 3:00 AM
+		//     Handler:     cronutils.WithRecovery(app, "example_cron", func() { cron.HandleExample(app) }),
+		//     Enabled:     os.Getenv("ENABLE_EXAMPLE_CRON") != "false",
+		//     Description: "Example cron job description",
+		// },
 	}
 
 	log.Info("Registering cron jobs", "total_cron_jobs", len(crons))

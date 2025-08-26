@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"ims-pocketbase-baas-starter/pkg/common"
 	"ims-pocketbase-baas-starter/pkg/cronutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 	"sync"
 	"time"
 
@@ -215,16 +215,49 @@ func (p *JobProcessor) validateJobRecord(record *core.Record) error {
 }
 
 // reserveJob updates the reserved_at timestamp to mark the job as being processed
+// Uses optimistic locking to prevent race conditions
 func (p *JobProcessor) reserveJob(record *core.Record) error {
+	// Store original values for potential rollback
+	originalReservedAt := record.GetString("reserved_at")
+
+	// Check if already reserved (quick check to avoid unnecessary work)
+	if originalReservedAt != "" && p.isJobReserved(record) {
+		return fmt.Errorf("job %s is already reserved", record.Id)
+	}
+
+	// Reserve the job
 	now := time.Now()
 	record.Set("reserved_at", now.Format(time.RFC3339))
 
 	if err := p.app.Save(record); err != nil {
+		// Restore original values on failure
+		record.Set("reserved_at", originalReservedAt)
+
+		// Check if the failure was due to concurrent reservation
+		freshRecord, freshErr := p.app.FindRecordById("queues", record.Id)
+		if freshErr == nil && freshRecord.GetString("reserved_at") != record.GetString("reserved_at") {
+			if p.isJobReserved(freshRecord) {
+				return fmt.Errorf("job %s was reserved by another worker", record.Id)
+			}
+		}
+
 		return fmt.Errorf("failed to reserve job %s: %w", record.Id, err)
 	}
 
-	log := logger.GetLogger(p.app)
-	log.Debug("Job reserved", "job_id", record.Id, "reserved_at", now)
+	// Verify reservation was successful (race condition detection)
+	freshRecord, err := p.app.FindRecordById("queues", record.Id)
+	if err != nil {
+		return fmt.Errorf("failed to verify reservation for job %s: %w", record.Id, err)
+	}
+
+	// Check if we actually got the reservation
+	if freshRecord.GetString("reserved_at") != record.GetString("reserved_at") {
+		// Someone else got it, restore our record and fail
+		record.Set("reserved_at", freshRecord.GetString("reserved_at"))
+		return fmt.Errorf("job %s was reserved by another worker", record.Id)
+	}
+
+	log.Info("Job reserved", "job_id", record.Id, "reserved_at", now)
 	return nil
 }
 
@@ -234,7 +267,6 @@ func (p *JobProcessor) completeJob(record *core.Record) error {
 		return fmt.Errorf("failed to delete completed job %s: %w", record.Id, err)
 	}
 
-	log := logger.GetLogger(p.app)
 	log.Info("Job completed and removed from queue",
 		"job_id", record.Id,
 		"job_name", record.GetString("name"))
@@ -250,7 +282,6 @@ func (p *JobProcessor) failJob(record *core.Record, jobErr error) error {
 	record.Set("attempts", newAttempts)
 	record.Set("reserved_at", "")
 
-	log := logger.GetLogger(p.app)
 	if err := p.app.Save(record); err != nil {
 		log.Error("Failed to update failed job record",
 			"job_id", record.Id,
@@ -292,13 +323,11 @@ func (p *JobProcessor) ProcessJob(record *core.Record) error {
 		return fmt.Errorf("job validation failed: %w", err)
 	}
 
-	// Step 2: Check if job is already reserved
-	if p.isJobReserved(record) {
-		return fmt.Errorf("job %s is already reserved by another process", record.Id)
-	}
-
-	// Step 3: Reserve the job
+	// Step 2: Attempt to reserve the job (atomic operation to prevent race conditions)
 	if err := p.reserveJob(record); err != nil {
+		if p.isJobReserved(record) {
+			return fmt.Errorf("job %s is already reserved by another process", record.Id)
+		}
 		return err
 	}
 
@@ -378,15 +407,13 @@ func (p *JobProcessor) processJobsConcurrentlyFallback(records []*core.Record, m
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			log := logger.GetLogger(p.app)
-			log.Debug("Job worker started", "worker_id", workerID)
 
 			for record := range jobChan {
 				err := p.ProcessJob(record)
 				errorChan <- err // Send error (or nil) to error channel
 			}
 
-			log.Debug("Job worker finished", "worker_id", workerID)
+			log.Info("Job worker finished", "worker_id", workerID)
 		}(i)
 	}
 
@@ -419,7 +446,6 @@ func (p *JobProcessor) processJobsConcurrentlyFallback(records []*core.Record, m
 		}
 	}
 
-	log := logger.GetLogger(p.app)
 	log.Info("Concurrent job processing completed",
 		"total_jobs", len(records),
 		"successful", successCount,
