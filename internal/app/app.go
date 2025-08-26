@@ -49,7 +49,6 @@ func NewApp() *pocketbase.PocketBase {
 	// This must be called after app creation but before OnServe setup
 	jobManager := jobs.GetJobManager()
 	if err := jobManager.Initialize(app); err != nil {
-		logger.Error("Failed to initialize job manager", "error", err)
 		log.Fatalf("Failed to initialize job manager: %v", err)
 	}
 
@@ -57,7 +56,6 @@ func NewApp() *pocketbase.PocketBase {
 	// This must be called after job manager initialization
 	logger.Info("Registering job handlers")
 	if err := jobs.RegisterJobs(app); err != nil {
-		logger.Error("Failed to register job handlers", "error", err)
 		log.Fatalf("Failed to register job handlers: %v", err)
 	}
 

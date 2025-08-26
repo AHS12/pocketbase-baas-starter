@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"ims-pocketbase-baas-starter/pkg/cronutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 	"ims-pocketbase-baas-starter/pkg/metrics"
 	"sync"
 	"time"
@@ -72,7 +72,6 @@ func NewWorkerPool(app *pocketbase.PocketBase, registry *JobRegistry, maxWorkers
 		go worker.start(&pool.wg)
 	}
 
-	log := logger.GetLogger(app)
 	log.Info("Worker pool started", "workers", maxWorkers)
 	return pool
 }
@@ -96,7 +95,6 @@ func (wp *WorkerPool) ProcessJobs(jobs []*core.Record) []error {
 			// Job queued successfully
 		case <-time.After(30 * time.Second):
 			// Timeout - this shouldn't happen with proper buffer sizing
-			log := logger.GetLogger(wp.app)
 			log.Error("Job queue timeout", "job_id", job.Id)
 		}
 	}
@@ -115,7 +113,6 @@ func (wp *WorkerPool) ProcessJobs(jobs []*core.Record) []error {
 			}
 		case <-time.After(5 * time.Minute):
 			// Timeout for job processing
-			log := logger.GetLogger(wp.app)
 			log.Error("Job processing timeout")
 			results[i] = fmt.Errorf("job processing timeout")
 		}
@@ -132,7 +129,6 @@ func (wp *WorkerPool) ProcessJobsConcurrently(jobs []*core.Record, maxWorkers in
 
 // Shutdown gracefully shuts down the worker pool
 func (wp *WorkerPool) Shutdown(ctx context.Context) error {
-	log := logger.GetLogger(wp.app)
 	log.Info("Shutting down worker pool")
 
 	// Close job queue to signal no more jobs
@@ -147,13 +143,11 @@ func (wp *WorkerPool) Shutdown(ctx context.Context) error {
 
 	select {
 	case <-done:
-		log := logger.GetLogger(wp.app)
 		log.Info("Worker pool shutdown completed")
 		return nil
 	case <-ctx.Done():
 		// Force shutdown
 		close(wp.quit)
-		log := logger.GetLogger(wp.app)
 		log.Warn("Worker pool force shutdown due to timeout")
 		return ctx.Err()
 	}
@@ -177,15 +171,11 @@ func (wp *WorkerPool) GetStats() map[string]any {
 func (w *Worker) start(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	log := logger.GetLogger(w.app)
-	log.Debug("Worker started", "worker_id", w.id)
-
 	for {
 		select {
 		case job, ok := <-w.jobQueue:
 			if !ok {
 				// Job queue closed, worker should exit
-				log.Debug("Worker shutting down", "worker_id", w.id)
 				return
 			}
 
@@ -200,8 +190,6 @@ func (w *Worker) start(wg *sync.WaitGroup) {
 
 		case <-w.quit:
 			// Forced shutdown
-			log := logger.GetLogger(w.app)
-			log.Debug("Worker force shutdown", "worker_id", w.id)
 			return
 		}
 	}
@@ -209,8 +197,6 @@ func (w *Worker) start(wg *sync.WaitGroup) {
 
 // processJob processes a single job (similar to JobProcessor.ProcessJob but optimized for worker pool)
 func (w *Worker) processJob(record *core.Record) error {
-	startTime := time.Now()
-
 	// Validate job record
 	if err := w.validateJobRecord(record); err != nil {
 		return fmt.Errorf("job validation failed: %w", err)
@@ -243,7 +229,6 @@ func (w *Worker) processJob(record *core.Record) error {
 		defer func() {
 			if r := recover(); r != nil {
 				jobErr = fmt.Errorf("job handler panicked: %v", r)
-				log := logger.GetLogger(w.app)
 				log.Error("Job handler panic", "job_id", record.Id, "panic", r)
 			}
 		}()
@@ -256,14 +241,11 @@ func (w *Worker) processJob(record *core.Record) error {
 
 	// Handle result
 	if jobErr != nil {
-		log := logger.GetLogger(w.app)
 		log.Error("Job failed", "job_id", record.Id, "worker_id", w.id, "error", jobErr)
 		return w.failJob(record, jobErr)
 	}
 
 	// Complete job
-	log := logger.GetLogger(w.app)
-	log.Debug("Job completed", "job_id", record.Id, "worker_id", w.id, "duration", time.Since(startTime))
 	return w.completeJob(record)
 }
 
@@ -308,7 +290,6 @@ func (w *Worker) reserveJob(record *core.Record) error {
 		return fmt.Errorf("failed to reserve job %s: %w", record.Id, err)
 	}
 
-	log := logger.GetLogger(w.app)
 	log.Debug("Job reserved", "job_id", record.Id, "reserved_at", now)
 	return nil
 }
@@ -323,7 +304,6 @@ func (w *Worker) failJob(record *core.Record, jobErr error) error {
 	record.Set("reserved_at", "")
 
 	if err := w.app.Save(record); err != nil {
-		log := logger.GetLogger(w.app)
 		log.Error("Failed to update failed job", "job_id", record.Id, "error", err)
 		return fmt.Errorf("failed to update failed job: %w", err)
 	}

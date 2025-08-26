@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"ims-pocketbase-baas-starter/pkg/cache"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 	"sync"
 	"time"
 )
@@ -93,7 +93,7 @@ func GetCacheStatus(generator *Generator) map[string]any {
 func hasCollectionsChanged(generator *Generator) bool {
 	currentHash, err := generateCollectionsHash(generator)
 	if err != nil {
-		logger.FromApp(generator.app).Warn("Failed to generate collections hash", "error", err)
+		log.Warn("Failed to generate collections hash", "error", err)
 		return true // Assume changed to be safe
 	}
 
@@ -128,7 +128,7 @@ func generateCollectionsHash(generator *Generator) (string, error) {
 func updateCollectionsHash(generator *Generator) {
 	hash, err := generateCollectionsHash(generator)
 	if err != nil {
-		logger.FromApp(generator.app).Warn("Failed to generate collections hash", "error", err)
+		log.Warn("Failed to generate collections hash", "error", err)
 		return
 	}
 

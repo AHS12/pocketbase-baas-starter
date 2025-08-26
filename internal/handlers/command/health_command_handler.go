@@ -4,13 +4,11 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/spf13/cobra"
 
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 )
 
 // HandleHealthCheckCommand performs a basic health check
 func HandleHealthCheckCommand(app *pocketbase.PocketBase, cmd *cobra.Command, args []string) {
-	log := logger.GetLogger(app)
-
 	// Perform basic health checks
 	log.Info("Running health check...")
 

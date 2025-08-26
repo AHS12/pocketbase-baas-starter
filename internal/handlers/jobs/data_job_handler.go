@@ -7,7 +7,7 @@ import (
 	"ims-pocketbase-baas-starter/internal/handlers/export"
 	"ims-pocketbase-baas-starter/pkg/cronutils"
 	"ims-pocketbase-baas-starter/pkg/jobutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase"
 )
@@ -40,8 +40,7 @@ func (h *DataProcessingJobHandler) Handle(ctx *cronutils.CronExecutionContext, j
 	}
 
 	// Log processing details
-	logger := logger.GetLogger(h.app)
-	logger.Info("Processing data job",
+	log.Info("Processing data job",
 		"job_id", job.ID,
 		"operation", dataPayload.Data.Operation,
 		"source", dataPayload.Data.Source,
@@ -126,8 +125,7 @@ func (h *DataProcessingJobHandler) handleTransformOperation(ctx *cronutils.CronE
 	// 2. Apply transformation rules
 	// 3. Save transformed data to payload.Data.Target
 
-	logger := logger.GetLogger(h.app)
-	logger.Info("Transform operation completed", "source", payload.Data.Source, "target", payload.Data.Target)
+	log.Info("Transform operation completed", "source", payload.Data.Source, "target", payload.Data.Target)
 	return nil
 }
 
@@ -155,8 +153,7 @@ func (h *DataProcessingJobHandler) handleAggregateOperation(ctx *cronutils.CronE
 	// 2. Perform aggregation calculations
 	// 3. Store aggregated results to payload.Data.Target
 
-	logger := logger.GetLogger(h.app)
-	logger.Info("Aggregate operation completed", "source", payload.Data.Source, "target", payload.Data.Target)
+	log.Info("Aggregate operation completed", "source", payload.Data.Source, "target", payload.Data.Target)
 	return nil
 }
 
@@ -177,8 +174,7 @@ func (h *DataProcessingJobHandler) handleExportOperation(ctx *cronutils.CronExec
 
 	}
 
-	logger := logger.GetLogger(h.app)
-	logger.Info("Export operation completed", "source", payload.Data.Source, "target", payload.Data.Target)
+	log.Info("Export operation completed", "source", payload.Data.Source, "target", payload.Data.Target)
 
 	return nil
 }
@@ -207,7 +203,6 @@ func (h *DataProcessingJobHandler) handleImportOperation(ctx *cronutils.CronExec
 	// 2. Validate and clean data
 	// 3. Insert into database at payload.Data.Target
 
-	logger := logger.GetLogger(h.app)
-	logger.Info("Import operation completed", "source", payload.Data.Source, "target", payload.Data.Target)
+	log.Info("Import operation completed", "source", payload.Data.Source, "target", payload.Data.Target)
 	return nil
 }

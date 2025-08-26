@@ -8,20 +8,13 @@ import (
 	"ims-pocketbase-baas-starter/pkg/cache"
 	"ims-pocketbase-baas-starter/pkg/common"
 	"ims-pocketbase-baas-starter/pkg/jobutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase/core"
 )
 
 // HandleUserWelcomeEmail handles sending a welcome email to new users
 func HandleUserWelcomeEmail(e *core.RecordEvent) error {
-	// Log the user creation
-	if log := logger.FromApp(e.App); log != nil {
-		log.Info("New user created - preparing welcome email",
-			"user_id", e.Record.Id,
-			"email", e.Record.GetString("email"))
-	}
-
 	// Get app name from settings or use default
 	appName := common.GetEnv("APP_NAME", "N/A")
 	settings := e.App.Settings()
@@ -64,9 +57,7 @@ func HandleUserWelcomeEmail(e *core.RecordEvent) error {
 	// Create job record in queues collection
 	collection, err := e.App.FindCollectionByNameOrId("queues")
 	if err != nil {
-		if log := logger.FromApp(e.App); log != nil {
-			log.Error("Failed to find queues collection", "error", err)
-		}
+		log.Error("Failed to find queues collection", "error", err)
 		return err
 	}
 
@@ -77,46 +68,37 @@ func HandleUserWelcomeEmail(e *core.RecordEvent) error {
 	// Convert payload to JSON
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		if log := logger.FromApp(e.App); log != nil {
-			log.Error("Failed to marshal email payload", "error", err)
-		}
+		log.Error("Failed to marshal email payload", "error", err)
 		return err
 	}
 	jobRecord.Set("payload", string(payloadBytes))
 	jobRecord.Set("attempts", 0)
 
 	if err := e.App.Save(jobRecord); err != nil {
-		if log := logger.FromApp(e.App); log != nil {
-			log.Error("Failed to queue welcome email job", "error", err)
-		}
+		log.Error("Failed to queue welcome email job", "error", err)
 		return err
 	}
 
-	if log := logger.FromApp(e.App); log != nil {
-		log.Info("Welcome email job queued successfully",
-			"user_id", e.Record.Id,
-			"email", email,
-			"job_id", jobRecord.Id)
-	}
+	log.Info("Welcome email job queued successfully",
+		"user_id", e.Record.Id,
+		"email", email,
+		"job_id", jobRecord.Id)
 
 	return e.Next()
 }
 
 // HandleUserCreateSettings generate default user settings
 func HandleUserCreateSettings(e *core.RecordEvent) error {
-	if log := logger.FromApp(e.App); log != nil {
-		log.Info("Creating default settings for new user",
-			"user_id", e.Record.Id,
-			"email", e.Record.GetString("email"),
-		)
-	}
+
+	log.Info("Creating default settings for new user",
+		"user_id", e.Record.Id,
+		"email", e.Record.GetString("email"),
+	)
 
 	// Find the user_settings collection
 	userSettingsCollection, err := e.App.FindCollectionByNameOrId("user_settings")
 	if err != nil {
-		if log := logger.FromApp(e.App); log != nil {
-			log.Error("user_settings collection not found", "error", err)
-		}
+		log.Error("user_settings collection not found", "error", err)
 		// Continue without failing if settings collection doesn't exist
 		return e.Next()
 	}
@@ -137,11 +119,9 @@ func HandleUserCreateSettings(e *core.RecordEvent) error {
 			"slug": defaultSetting.SettingSlug,
 		})
 		if err != nil {
-			if log := logger.FromApp(e.App); log != nil {
-				log.Warn("Setting not found, skipping",
-					"slug", defaultSetting.SettingSlug,
-					"error", err)
-			}
+			log.Warn("Setting not found, skipping",
+				"slug", defaultSetting.SettingSlug,
+				"error", err)
 			continue
 		}
 
@@ -158,28 +138,16 @@ func HandleUserCreateSettings(e *core.RecordEvent) error {
 
 		// Save the user setting record
 		if err := e.App.Save(userSettingRecord); err != nil {
-			if log := logger.FromApp(e.App); log != nil {
-				log.Error("Failed to create user setting",
-					"user_id", e.Record.Id,
-					"setting_slug", defaultSetting.SettingSlug,
-					"error", err)
-			}
-			continue
-		}
-
-		if log := logger.FromApp(e.App); log != nil {
-			log.Debug("User setting created",
+			log.Error("Failed to create user setting",
 				"user_id", e.Record.Id,
 				"setting_slug", defaultSetting.SettingSlug,
-				"value", defaultSetting.Value,
-				"user_setting_id", userSettingRecord.Id)
+				"error", err)
+			continue
 		}
 	}
 
-	if log := logger.FromApp(e.App); log != nil {
-		log.Info("Default user settings creation completed",
-			"user_id", e.Record.Id)
-	}
+	log.Info("Default user settings creation completed",
+		"user_id", e.Record.Id)
 
 	return e.Next()
 }
@@ -194,14 +162,6 @@ func HandleUserCacheClear(e *core.RecordEvent) error {
 
 	// Delete the user's permission cache entry
 	cacheService.Delete(cacheKey)
-
-	// Log the cache invalidation
-	if log := logger.FromApp(e.App); log != nil {
-		log.Debug("Cleared user permission cache",
-			"user_id", e.Record.Id,
-			"email", e.Record.GetString("email"),
-			"cache_key", cacheKey)
-	}
 
 	return e.Next()
 }

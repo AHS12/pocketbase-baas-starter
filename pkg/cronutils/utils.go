@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase"
 )
@@ -30,27 +30,23 @@ func NewCronExecutionContext(app *pocketbase.PocketBase, CronID string) *CronExe
 
 // LogStart logs the start of a job execution
 func (ctx *CronExecutionContext) LogStart(message string) {
-	log := logger.GetLogger(ctx.App)
 	log.Info(fmt.Sprintf("Job %s started", ctx.CronID), "message", message, "start_time", ctx.StartTime)
 }
 
 // LogEnd logs the end of a job execution with duration
 func (ctx *CronExecutionContext) LogEnd(message string) {
 	duration := time.Since(ctx.StartTime)
-	log := logger.GetLogger(ctx.App)
 	log.Info(fmt.Sprintf("Job %s completed", ctx.CronID), "message", message, "duration", duration)
 }
 
 // LogError logs an error during job execution
 func (ctx *CronExecutionContext) LogError(err error, message string) {
 	duration := time.Since(ctx.StartTime)
-	log := logger.GetLogger(ctx.App)
 	log.Error(fmt.Sprintf("Job %s failed", ctx.CronID), "error", err, "message", message, "duration", duration)
 }
 
 // LogDebug logs for dev and debugging
 func (ctx *CronExecutionContext) LogDebug(data any, message string) {
-	log := logger.GetLogger(ctx.App)
 	log.Debug(fmt.Sprintf("message: %s, data: %v", message, data))
 }
 
@@ -59,7 +55,6 @@ func WithRecovery(app *pocketbase.PocketBase, CronID string, jobFunc func()) fun
 	return func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log := logger.GetLogger(app)
 				log.Error(fmt.Sprintf("Job %s panicked", CronID), "panic", r)
 			}
 		}()

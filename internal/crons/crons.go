@@ -5,7 +5,7 @@ import (
 
 	"ims-pocketbase-baas-starter/internal/handlers/cron"
 	"ims-pocketbase-baas-starter/pkg/cronutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase"
 )
@@ -26,7 +26,6 @@ func RegisterCrons(app *pocketbase.PocketBase) {
 		panic("RegisterCrons: app cannot be nil")
 	}
 
-	log := logger.GetLogger(app)
 	log.Info("Starting cron job registration process")
 
 	// Define all cron jobs

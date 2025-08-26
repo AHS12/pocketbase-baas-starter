@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase"
 	"golang.org/x/text/cases"
@@ -869,7 +869,6 @@ func (rg *RouteGenerator) hasFileFields(collection CollectionInfo) bool {
 // getFileFields returns a list of file fields with their options
 func (rg *RouteGenerator) getFileFields(collection CollectionInfo) []FileFieldInfo {
 	var fileFields []FileFieldInfo
-	log := logger.FromApp(rg.app)
 
 	if len(collection.Fields) == 0 {
 		return fileFields
@@ -982,7 +981,6 @@ func isRelationField(fieldSchema map[string]any) bool {
 // If collection has file fields, it adds multipart/form-data support for create and update operations
 func (rg *RouteGenerator) generateRequestContent(schema any, collection CollectionInfo, operation string) map[string]MediaType {
 	content := make(map[string]MediaType)
-	log := logger.FromApp(rg.app)
 
 	// Always include application/json
 	content["application/json"] = MediaType{

@@ -3,7 +3,7 @@ package apidoc
 import (
 	"encoding/json"
 	"fmt"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -77,8 +77,6 @@ func (cd *CollectionDiscovery) DiscoverCollections() ([]CollectionInfo, error) {
 	if cd.app == nil {
 		return nil, fmt.Errorf("PocketBase app is nil")
 	}
-
-	log := logger.FromAppOrDefault(cd.app)
 
 	// Use PocketBase's built-in collection finder
 	collections, err := cd.app.FindAllCollections()
@@ -191,8 +189,6 @@ func (cd *CollectionDiscovery) extractCollectionInfo(dbCol databaseCollection) (
 	// Initialize options
 	collectionInfo.Options = make(map[string]any)
 
-	log := logger.FromAppOrDefault(cd.app)
-
 	// Parse schema JSON to extract fields
 	if dbCol.Schema != "" {
 		fields, err := cd.parseSchemaFields(dbCol.Schema)
@@ -232,7 +228,7 @@ func (cd *CollectionDiscovery) parseSchemaFields(schemaJSON string) ([]FieldInfo
 	for _, fieldData := range schemaData {
 		field, err := cd.parseFieldInfo(fieldData)
 		if err != nil {
-			logger.FromAppOrDefault(cd.app).Warn("Failed to parse field", "fieldData", fieldData, "error", err)
+			log.Warn("Failed to parse field", "fieldData", fieldData, "error", err)
 			continue
 		}
 		fields = append(fields, *field)
@@ -364,7 +360,7 @@ func (cd *CollectionDiscovery) ValidateCollectionAccess() error {
 		return fmt.Errorf("failed to access collections table: %w", err)
 	}
 
-	logger.FromAppOrDefault(cd.app).Info("Collection access validated", "count", count)
+	log.Info("Collection access validated", "count", count)
 	return nil
 }
 

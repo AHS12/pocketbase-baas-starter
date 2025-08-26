@@ -3,7 +3,7 @@ package apidoc
 import (
 	"fmt"
 	"ims-pocketbase-baas-starter/pkg/common"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 	"slices"
 	"strings"
 	"sync"
@@ -166,7 +166,6 @@ func NewGenerator(app *pocketbase.PocketBase, config Config) *Generator {
 
 // GenerateSpec generates the unified OpenAPI specification
 func (g *Generator) GenerateSpec() (*CombinedOpenAPISpec, error) {
-	log := logger.FromAppOrDefault(g.app)
 	log.Info("Starting OpenAPI specification generation...")
 
 	// Step 1: Discover collections
@@ -232,7 +231,6 @@ func GenerateOpenAPI(app *pocketbase.PocketBase) (*CombinedOpenAPISpec, error) {
 // generateAllSchemas generates schemas for all collections
 func (g *Generator) generateAllSchemas(collections []CollectionInfo) (map[string]any, error) {
 	allSchemas := make(map[string]any)
-	log := logger.FromAppOrDefault(g.app)
 
 	for _, collection := range collections {
 		// Check if schemaGen supports the optimized approach

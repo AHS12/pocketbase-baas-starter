@@ -11,7 +11,7 @@ import (
 
 	"ims-pocketbase-baas-starter/pkg/cronutils"
 	"ims-pocketbase-baas-starter/pkg/jobutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 	"ims-pocketbase-baas-starter/pkg/metrics"
 
 	"github.com/pocketbase/pocketbase"
@@ -51,8 +51,7 @@ func (h *EmailJobHandler) Handle(ctx *cronutils.CronExecutionContext, job *jobut
 		}
 
 		// Log email processing details
-		logger := logger.GetLogger(h.app)
-		logger.Info("Processing email job",
+		log.Info("Processing email job",
 			"job_id", job.ID,
 			"to", emailPayload.Data.To,
 			"subject", emailPayload.Data.Subject,
@@ -110,27 +109,25 @@ func (h *EmailJobHandler) validateEmailPayload(payload *jobutils.EmailJobPayload
 
 // processEmailTemplates processes both HTML and text email templates with variables
 func (h *EmailJobHandler) processEmailTemplates(payload *jobutils.EmailJobPayload) (string, string, error) {
-	logger := logger.GetLogger(h.app)
-
 	// If no template is specified, return empty content
 	if payload.Data.Template == "" {
-		logger.Debug("No template specified, using empty content")
+		log.Debug("No template specified, using empty content")
 		return "", "", nil
 	}
 
 	// Try to process HTML template
 	htmlContent, err := h.processSingleTemplate(payload, ".html")
 	if err != nil {
-		logger.Warn("Failed to process HTML template", "error", err)
+		log.Warn("Failed to process HTML template", "error", err)
 	}
 
 	// Try to process text template
 	textContent, err := h.processSingleTemplate(payload, ".txt")
 	if err != nil {
-		logger.Warn("Failed to process text template", "error", err)
+		log.Warn("Failed to process text template", "error", err)
 	}
 
-	logger.Debug("Email templates processed successfully", "template", payload.Data.Template)
+	log.Debug("Email templates processed successfully", "template", payload.Data.Template)
 	return htmlContent, textContent, nil
 }
 
@@ -161,8 +158,6 @@ func (h *EmailJobHandler) processSingleTemplate(payload *jobutils.EmailJobPayloa
 
 // sendEmail sends the email using PocketBase mailer
 func (h *EmailJobHandler) sendEmail(payload *jobutils.EmailJobPayload, htmlContent, textContent string) error {
-	logger := logger.GetLogger(h.app)
-
 	// Get sender settings from PocketBase admin UI configuration
 	settings := h.app.Settings()
 
@@ -207,14 +202,14 @@ func (h *EmailJobHandler) sendEmail(payload *jobutils.EmailJobPayload, htmlConte
 
 	// Send email
 	if err := h.app.NewMailClient().Send(message); err != nil {
-		logger.Error("Failed to send email",
+		log.Error("Failed to send email",
 			"to", payload.Data.To,
 			"subject", payload.Data.Subject,
 			"error", err)
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
-	logger.Info("Email sent successfully",
+	log.Info("Email sent successfully",
 		"to", payload.Data.To,
 		"subject", payload.Data.Subject)
 

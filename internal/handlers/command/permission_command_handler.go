@@ -8,13 +8,12 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/spf13/cobra"
 
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 	"ims-pocketbase-baas-starter/pkg/permission"
 )
 
 // HandleSyncPermissionsCommand syncs hardcoded permissions into the database
 func HandleSyncPermissionsCommand(app *pocketbase.PocketBase, cmd *cobra.Command, args []string) {
-	log := logger.GetLogger(app)
 	log.Info("Starting permission sync process")
 
 	// Get all hardcoded permissions
@@ -44,7 +43,7 @@ func HandleSyncPermissionsCommand(app *pocketbase.PocketBase, cmd *cobra.Command
 		}
 
 		if existingRecord != nil {
-			log.Debug("Permission already exists, skipping", "slug", perm.Slug)
+			log.Info("Permission already exists, skipping", "slug", perm.Slug)
 			skippedCount++
 			continue
 		}

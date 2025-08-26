@@ -3,7 +3,7 @@ package jobs
 import (
 	"ims-pocketbase-baas-starter/internal/handlers/jobs"
 	"ims-pocketbase-baas-starter/pkg/jobutils"
-	"ims-pocketbase-baas-starter/pkg/logger"
+	log "ims-pocketbase-baas-starter/pkg/logger"
 
 	"github.com/pocketbase/pocketbase"
 )
@@ -23,7 +23,6 @@ func RegisterJobs(app *pocketbase.PocketBase) error {
 		panic("RegisterJobs: app cannot be nil")
 	}
 
-	log := logger.GetLogger(app)
 	log.Info("Starting job handler registration process")
 
 	// Get the job manager and processor
