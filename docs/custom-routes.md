@@ -474,6 +474,7 @@ func registerApiDocRoutes(generator *apidoc.Generator) {
 After registering your routes, they will appear in:
 
 - **API Docs**: http://localhost:8090/api-docs
+- **Scalar**: http://localhost:8090/api-docs/scalar
 - **ReDoc**: http://localhost:8090/api-docs/redoc
 - **OpenAPI JSON**: http://localhost:8090/api-docs/openapi.json
 

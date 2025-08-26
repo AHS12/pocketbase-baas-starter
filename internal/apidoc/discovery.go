@@ -354,13 +354,16 @@ func (cd *CollectionDiscovery) ValidateCollectionAccess() error {
 	}
 
 	// Try to access collections to validate the connection
-	var count int
-	err := cd.app.DB().NewQuery("SELECT COUNT(*) FROM _collections").One(&count)
+	var result struct {
+		Count int `db:"count"`
+	}
+
+	err := cd.app.DB().NewQuery("SELECT COUNT(*) as count FROM _collections").One(&result)
 	if err != nil {
 		return fmt.Errorf("failed to access collections table: %w", err)
 	}
 
-	log.Info("Collection access validated", "count", count)
+	log.Info("Collection access validated", "count", result.Count)
 	return nil
 }
 
@@ -379,7 +382,7 @@ func (cd *CollectionDiscovery) GetCollectionStats() (map[string]int, error) {
 	}
 
 	err := cd.app.DB().NewQuery(`
-		SELECT 
+		SELECT
 			COUNT(*) as total,
 			COUNT(CASE WHEN type = 'base' THEN 1 END) as base,
 			COUNT(CASE WHEN type = 'auth' THEN 1 END) as auth,
