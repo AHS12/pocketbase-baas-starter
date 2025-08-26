@@ -17,10 +17,8 @@ import (
 
 // HandleUserExport processes user export jobs with optimized batch queries
 func HandleUserExport(app *pocketbase.PocketBase, jobId string, payload *jobutils.DataProcessingJobPayload) error {
-	// Record start time for timeout checking
 	startTime := time.Now()
 
-	// Fetch all users from the database
 	users, err := fetchAllUsers(app)
 	if err != nil {
 		log.Error("Failed to fetch users", "job_id", jobId, "error", err)
@@ -29,31 +27,26 @@ func HandleUserExport(app *pocketbase.PocketBase, jobId string, payload *jobutil
 
 	log.Info("Fetched users for export", "job_id", jobId, "user_count", len(users))
 
-	// Check if we have users to export
 	if len(users) == 0 {
 		log.Warn("No users found to export", "job_id", jobId)
 		return fmt.Errorf("no users found to export")
 	}
 
-	// Check timeout before CSV conversion
 	if payload.Options.Timeout > 0 && time.Since(startTime).Seconds() > float64(payload.Options.Timeout) {
 		log.Warn("User export timeout during CSV conversion", "job_id", jobId, "elapsed", time.Since(startTime))
 		return fmt.Errorf("export operation timed out")
 	}
 
-	// Convert users to CSV
 	csvData, err := convertUsersToCSV(app, users)
 	if err != nil {
 		log.Error("Failed to convert users to CSV", "job_id", jobId, "error", err)
 		return fmt.Errorf("failed to convert users to CSV: %w", err)
 	}
 
-	// Generate filename with timestamp
 	filename := fmt.Sprintf("users_export_%s.csv", time.Now().Format("20060102_150405"))
 
 	log.Info("Generated CSV data", "job_id", jobId, "filename", filename, "file_size", len(csvData))
 
-	// Save the export file
 	if _, err := jobutils.SaveExportFile(app, jobId, filename, csvData, len(users)); err != nil {
 		log.Error("Failed to save export file", "job_id", jobId, "error", err)
 		return fmt.Errorf("failed to save export file: %w", err)
@@ -71,7 +64,6 @@ func fetchAllUsers(app *pocketbase.PocketBase) ([]*core.Record, error) {
 		return nil, fmt.Errorf("users collection not found: %w", err)
 	}
 
-	// Fetch all users
 	records, err := app.FindRecordsByFilter(
 		collection,
 		"",         // no filter - get all users
@@ -88,14 +80,12 @@ func fetchAllUsers(app *pocketbase.PocketBase) ([]*core.Record, error) {
 
 // convertUsersToCSV converts user records to CSV format using optimized batch queries
 func convertUsersToCSV(app *pocketbase.PocketBase, users []*core.Record) ([]byte, error) {
-	// Pre-allocate buffer with estimated size to reduce memory allocations
 	estimatedSize := len(users) * 200 // Rough estimate of 200 bytes per user row
 	var buf bytes.Buffer
 	buf.Grow(estimatedSize)
 
 	writer := csv.NewWriter(&buf)
 
-	// Write CSV header
 	header := []string{
 		"ID",
 		"Email",
@@ -112,7 +102,6 @@ func convertUsersToCSV(app *pocketbase.PocketBase, users []*core.Record) ([]byte
 		return nil, fmt.Errorf("failed to write CSV header: %w", err)
 	}
 
-	// Build lookup maps for roles and permissions to avoid N+1 queries
 	roleNameMap, err := buildRoleNameMap(app, users)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build role name map: %w", err)
@@ -123,12 +112,8 @@ func convertUsersToCSV(app *pocketbase.PocketBase, users []*core.Record) ([]byte
 		return nil, fmt.Errorf("failed to build permission slug map: %w", err)
 	}
 
-	// Write user data using pre-built maps
 	for _, user := range users {
-		// Get role names using the pre-built map
 		roleNames := getRoleNames(user, roleNameMap)
-
-		// Get permission slugs using the pre-built map
 		permissionSlugs := getPermissionSlugs(user, permissionSlugMap)
 
 		row := []string{
@@ -159,7 +144,6 @@ func convertUsersToCSV(app *pocketbase.PocketBase, users []*core.Record) ([]byte
 
 // buildRoleNameMap creates a map of role ID to role name for all users (single batch query)
 func buildRoleNameMap(app *pocketbase.PocketBase, users []*core.Record) (map[string]string, error) {
-	// Collect all unique role IDs across all users
 	roleIdSet := make(map[string]struct{})
 	for _, user := range users {
 		roleIds := user.GetStringSlice("roles")
@@ -170,13 +154,11 @@ func buildRoleNameMap(app *pocketbase.PocketBase, users []*core.Record) (map[str
 		}
 	}
 
-	// Convert set to slice
 	roleIds := make([]string, 0, len(roleIdSet))
 	for roleId := range roleIdSet {
 		roleIds = append(roleIds, roleId)
 	}
 
-	// Single batch query for all roles
 	if len(roleIds) == 0 {
 		return make(map[string]string), nil
 	}
@@ -186,7 +168,6 @@ func buildRoleNameMap(app *pocketbase.PocketBase, users []*core.Record) (map[str
 		return nil, fmt.Errorf("failed to fetch roles: %w", err)
 	}
 
-	// Build the map
 	roleNameMap := make(map[string]string, len(roles))
 	for _, role := range roles {
 		roleNameMap[role.Id] = role.GetString("name")
@@ -197,7 +178,6 @@ func buildRoleNameMap(app *pocketbase.PocketBase, users []*core.Record) (map[str
 
 // buildPermissionSlugMap creates a map of permission ID to permission slug for all users (single batch query)
 func buildPermissionSlugMap(app *pocketbase.PocketBase, users []*core.Record) (map[string]string, error) {
-	// Collect all unique permission IDs across all users
 	permissionIdSet := make(map[string]struct{})
 	for _, user := range users {
 		permissionIds := user.GetStringSlice("permissions")
@@ -208,13 +188,11 @@ func buildPermissionSlugMap(app *pocketbase.PocketBase, users []*core.Record) (m
 		}
 	}
 
-	// Convert set to slice
 	permissionIds := make([]string, 0, len(permissionIdSet))
 	for permissionId := range permissionIdSet {
 		permissionIds = append(permissionIds, permissionId)
 	}
 
-	// Single batch query for all permissions
 	if len(permissionIds) == 0 {
 		return make(map[string]string), nil
 	}
@@ -224,7 +202,6 @@ func buildPermissionSlugMap(app *pocketbase.PocketBase, users []*core.Record) (m
 		return nil, fmt.Errorf("failed to fetch permissions: %w", err)
 	}
 
-	// Build the map
 	permissionSlugMap := make(map[string]string, len(permissions))
 	for _, permission := range permissions {
 		permissionSlugMap[permission.Id] = permission.GetString("slug")

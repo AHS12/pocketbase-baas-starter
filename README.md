@@ -114,9 +114,11 @@ For a complete list of commands and usage examples, see the [Makefile Commands G
 
 4. **Access services**
    - PocketBase Admin: http://localhost:8090/\_/
-   - API Documentation (API Docs): http://localhost:8090/api-docs
+   - API Documentation (Swagger UI): http://localhost:8090/api-docs
+   - API Documentation (Scalar): http://localhost:8090/api-docs/scalar
    - API Documentation (ReDoc): http://localhost:8090/api-docs/redoc
    - OpenAPI JSON: http://localhost:8090/api-docs/openapi.json
+   - API Health Check: http://localhost:8090/api-docs/health
    - MailHog Web UI: http://localhost:8025
    - Grafana Dashboard: http://localhost:3000 (admin/admin)
    - Prometheus Metrics: http://localhost:9090

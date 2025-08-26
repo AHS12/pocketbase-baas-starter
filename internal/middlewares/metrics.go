@@ -25,7 +25,6 @@ func (m *MetricsMiddleware) RequireMetricsFunc() func(*core.RequestEvent) error 
 			return e.Next()
 		}
 
-		// Use the instrumentation helper to wrap the request
 		return metrics.InstrumentHTTPHandler(m.provider, e.Request.Method, e.Request.URL.Path, func() error {
 			return e.Next()
 		})
@@ -36,23 +35,6 @@ func (m *MetricsMiddleware) RequireMetricsFunc() func(*core.RequestEvent) error 
 func RequireMetrics(provider metrics.MetricsProvider) func(*core.RequestEvent) error {
 	middleware := NewMetricsMiddleware(provider)
 	return middleware.RequireMetricsFunc()
-}
-
-// normalizePath normalizes URL paths for consistent metrics
-// This helps reduce cardinality by grouping similar paths
-func normalizePath(path string) string {
-	// For now, return the path as-is
-	// In production, you might want to:
-	// - Replace IDs with placeholders (e.g., /api/users/123 -> /api/users/{id})
-	// - Group similar paths
-	// - Limit path length
-
-	// Simple length limiting to prevent high cardinality
-	if len(path) > 100 {
-		return path[:100] + "..."
-	}
-
-	return path
 }
 
 // InstrumentHandler wraps a handler function with metrics collection

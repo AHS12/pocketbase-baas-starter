@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"fmt"
 	"ims-pocketbase-baas-starter/internal/handlers/hook"
 	log "ims-pocketbase-baas-starter/pkg/logger"
 	"ims-pocketbase-baas-starter/pkg/metrics"
@@ -10,29 +11,44 @@ import (
 )
 
 // RegisterHooks registers all custom event hooks
-func RegisterHooks(app *pocketbase.PocketBase) {
+func RegisterHooks(app *pocketbase.PocketBase) error {
+	if app == nil {
+		return fmt.Errorf("RegisterHooks: app cannot be nil")
+	}
+
 	log.Info("Registering custom event hooks")
 
 	// Register Record hooks
-	registerRecordHooks(app)
+	if err := registerRecordHooks(app); err != nil {
+		return fmt.Errorf("failed to register record hooks: %w", err)
+	}
 
 	// Register Collection hooks
-	registerCollectionHooks(app)
+	if err := registerCollectionHooks(app); err != nil {
+		return fmt.Errorf("failed to register collection hooks: %w", err)
+	}
 
 	// Register Request hooks
-	registerRequestHooks(app)
+	if err := registerRequestHooks(app); err != nil {
+		return fmt.Errorf("failed to register request hooks: %w", err)
+	}
 
 	// Register Mailer hooks
-	registerMailerHooks(app)
+	if err := registerMailerHooks(app); err != nil {
+		return fmt.Errorf("failed to register mailer hooks: %w", err)
+	}
 
 	// Register Realtime hooks
-	registerRealtimeHooks(app)
+	if err := registerRealtimeHooks(app); err != nil {
+		return fmt.Errorf("failed to register realtime hooks: %w", err)
+	}
 
 	log.Info("Custom event hooks registration completed")
+	return nil
 }
 
 // registerRecordHooks registers all record-related event hooks
-func registerRecordHooks(app *pocketbase.PocketBase) {
+func registerRecordHooks(app *pocketbase.PocketBase) error {
 	// Example: Log all record creations
 	app.OnRecordCreate().BindFunc(func(e *core.RecordEvent) error {
 		return hook.HandleRecordCreate(e)
@@ -76,10 +92,8 @@ func registerRecordHooks(app *pocketbase.PocketBase) {
 
 	// Create user default settings (with metrics instrumentation)
 	app.OnRecordAfterCreateSuccess("users").BindFunc(func(e *core.RecordEvent) error {
-		// Get the metrics provider instance
 		metricsProvider := metrics.GetInstance()
 
-		// Instrument the hook execution with metrics collection
 		return metrics.InstrumentHook(metricsProvider, "user_create_settings", func() error {
 			return hook.HandleUserCreateSettings(e)
 		})
@@ -91,10 +105,11 @@ func registerRecordHooks(app *pocketbase.PocketBase) {
 	})
 
 	log.Debug("Record hooks registered")
+	return nil
 }
 
 // registerCollectionHooks registers all collection-related event hooks
-func registerCollectionHooks(app *pocketbase.PocketBase) {
+func registerCollectionHooks(app *pocketbase.PocketBase) error {
 	// Example: Log collection creations
 	app.OnCollectionCreate().BindFunc(func(e *core.CollectionEvent) error {
 		return hook.HandleCollectionCreate(e)
@@ -106,10 +121,11 @@ func registerCollectionHooks(app *pocketbase.PocketBase) {
 	})
 
 	log.Debug("Collection hooks registered")
+	return nil
 }
 
 // registerRequestHooks registers all request-related event hooks
-func registerRequestHooks(app *pocketbase.PocketBase) {
+func registerRequestHooks(app *pocketbase.PocketBase) error {
 	// Example: Log all record list requests
 	app.OnRecordsListRequest().BindFunc(func(e *core.RecordsListRequestEvent) error {
 		return hook.HandleRecordListRequest(e)
@@ -126,10 +142,11 @@ func registerRequestHooks(app *pocketbase.PocketBase) {
 	// })
 
 	log.Debug("Request hooks registered")
+	return nil
 }
 
 // registerMailerHooks registers all mailer-related event hooks
-func registerMailerHooks(app *pocketbase.PocketBase) {
+func registerMailerHooks(app *pocketbase.PocketBase) error {
 	// Example: Log all email sends (with metrics instrumentation)
 	app.OnMailerSend().BindFunc(func(e *core.MailerEvent) error {
 		// Get the metrics provider instance
@@ -142,10 +159,11 @@ func registerMailerHooks(app *pocketbase.PocketBase) {
 	})
 
 	log.Debug("Mailer hooks registered")
+	return nil
 }
 
 // registerRealtimeHooks registers all realtime-related event hooks
-func registerRealtimeHooks(app *pocketbase.PocketBase) {
+func registerRealtimeHooks(app *pocketbase.PocketBase) error {
 	// Example: Log realtime connections
 	app.OnRealtimeConnectRequest().BindFunc(func(e *core.RealtimeConnectRequestEvent) error {
 		return hook.HandleRealtimeConnect(e)
@@ -157,4 +175,5 @@ func registerRealtimeHooks(app *pocketbase.PocketBase) {
 	})
 
 	log.Debug("Realtime hooks registered")
+	return nil
 }

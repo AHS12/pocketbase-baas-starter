@@ -67,19 +67,31 @@ func RegisterJobs(app *pocketbase.PocketBase) error {
 	registry := processor.GetRegistry()
 	registeredCount := 0
 
+	// Get list of already registered handlers
+	existingHandlers := make(map[string]bool)
+	for _, handlerType := range registry.ListHandlers() {
+		existingHandlers[handlerType] = true
+	}
+
 	for _, jobHandler := range jobs {
 		if !jobHandler.Enabled {
 			log.Info("Skipped disabled job handler", "job_type", jobHandler.Type, "description", jobHandler.Description)
 			continue
 		}
 
-		// Register the job handler with the registry
+		if existingHandlers[jobHandler.Type] {
+			log.Debug("Job handler already registered, skipping",
+				"job_type", jobHandler.Type,
+				"description", jobHandler.Description)
+			continue
+		}
+
 		if err := registry.Register(jobHandler.Handler); err != nil {
 			log.Error("Failed to register job handler",
 				"job_type", jobHandler.Type,
 				"description", jobHandler.Description,
 				"error", err)
-			continue
+			return err
 		}
 
 		log.Info("Registered job handler",

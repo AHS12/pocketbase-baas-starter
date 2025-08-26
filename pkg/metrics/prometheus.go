@@ -111,7 +111,6 @@ func (p *PrometheusProvider) GetHandler() http.Handler {
 // Shutdown gracefully shuts down the Prometheus provider
 func (p *PrometheusProvider) Shutdown(ctx context.Context) error {
 	// Prometheus client doesn't require explicit shutdown
-	// Just clear internal state
 	p.mu.Lock()
 	defer p.mu.Unlock()
 

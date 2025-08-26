@@ -70,4 +70,10 @@ func RegisterEndpoints(se *core.ServeEvent, generator *Generator) {
 			return response.OK(e, "No collection changes detected", responseData)
 		}
 	})
+
+	// Health check endpoint
+	se.Router.GET("/api-docs/health", func(e *core.RequestEvent) error {
+		health := generator.GetHealthStatus()
+		return e.JSON(http.StatusOK, health)
+	})
 }

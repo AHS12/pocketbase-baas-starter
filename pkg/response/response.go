@@ -91,14 +91,12 @@ func ValidationError(e *core.RequestEvent, message string, validationErrors map[
 
 // File serves a file download from PocketBase filesystem
 func File(e *core.RequestEvent, fileName, basePath string) error {
-	// Create filesystem instance
 	filesystem, err := e.App.NewFilesystem()
 	if err != nil {
 		return InternalServerError(e, "Failed to access filesystem", nil)
 	}
 	defer filesystem.Close()
 
-	// Get file reader from PocketBase filesystem
 	fileKey := basePath + "/" + fileName
 	fileReader, err := filesystem.GetReader(fileKey)
 	if err != nil {
@@ -106,11 +104,9 @@ func File(e *core.RequestEvent, fileName, basePath string) error {
 	}
 	defer fileReader.Close()
 
-	// Set appropriate headers for file download
 	e.Response.Header().Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
 	e.Response.Header().Set("Content-Type", "application/octet-stream")
 
-	// Copy file content to response
 	_, err = io.Copy(e.Response, fileReader)
 	if err != nil {
 		return InternalServerError(e, "Failed to serve file", nil)

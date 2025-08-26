@@ -14,41 +14,31 @@ func main() {
 }
 
 func run() error {
-	// Parse command-line arguments
 	config, err := ParseArgs(os.Args)
 	if err != nil {
 		ShowUsage()
 		return err
 	}
 
-	// Scan existing migrations
 	migrations, err := migration.ScanExistingMigrations(config.OutputDir)
 	if err != nil {
 		return err
 	}
 
-	// Determine next migration number
 	nextNumber := migration.GetNextMigrationNumber(migrations)
-
-	// Create migration template
 	template := CreateMigrationTemplate(nextNumber, config.MigrationName)
-
-	// Generate migration content
 	content, err := GenerateMigrationContent(template)
 	if err != nil {
 		return err
 	}
 
-	// Generate file paths
 	migrationPath := migration.GenerateMigrationFilePath(nextNumber, config.MigrationName)
 	schemaPath := migration.GenerateSchemaFilePath(nextNumber)
 
-	// Write migration file
 	if err := migration.WriteMigrationFile(migrationPath, content); err != nil {
 		return err
 	}
 
-	// Display success message
 	fmt.Printf("✓ Generated migration file: %s\n", migrationPath)
 	fmt.Printf("✓ Schema file expected at: %s\n", schemaPath)
 	fmt.Println()

@@ -112,36 +112,3 @@ func TestHelperFunctions(t *testing.T) {
 	IncrementCustomCounter(nil, "custom_counter", labels)
 	SetCustomGauge(nil, "custom_gauge", 42.0, labels)
 }
-
-func TestNormalizePath(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "normal path",
-			input:    "/api/users",
-			expected: "/api/users",
-		},
-		{
-			name:     "empty path",
-			input:    "",
-			expected: "",
-		},
-		{
-			name:     "very long path",
-			input:    "/" + string(make([]byte, 150)),
-			expected: "/" + string(make([]byte, 99)) + "...",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := normalizePath(tt.input)
-			if result != tt.expected {
-				t.Errorf("normalizePath(%q) = %q, expected %q", tt.input, result, tt.expected)
-			}
-		})
-	}
-}

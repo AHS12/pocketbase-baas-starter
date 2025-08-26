@@ -70,14 +70,11 @@ func (p *OpenTelemetryProvider) RecordHistogram(name string, value float64, labe
 
 // SetGauge sets a gauge metric value
 func (p *OpenTelemetryProvider) SetGauge(name string, value float64, labels map[string]string) {
-	// First ensure gauge exists (without holding lock)
 	p.getOrCreateGauge(name)
 
-	// Then store the value
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Store the value for the gauge (we'll use the first label as a key for simplicity)
 	key := name
 	if len(labels) > 0 {
 		for k, v := range labels {
@@ -134,7 +131,6 @@ func (t *OpenTelemetryTimer) Stop() {
 func (t *OpenTelemetryTimer) StopWithLabels(additionalLabels map[string]string) {
 	duration := time.Since(t.startTime)
 
-	// Merge original labels with additional labels
 	allLabels := make([]attribute.KeyValue, len(t.labels))
 	copy(allLabels, t.labels)
 
@@ -160,7 +156,6 @@ func (p *OpenTelemetryProvider) getOrCreateCounter(name string) metric.Int64Coun
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Double-check after acquiring write lock
 	if counter, exists := p.counters[name]; exists {
 		return counter
 	}
@@ -190,7 +185,6 @@ func (p *OpenTelemetryProvider) getOrCreateHistogram(name string) metric.Float64
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Double-check after acquiring write lock
 	if histogram, exists := p.histograms[name]; exists {
 		return histogram
 	}
@@ -220,13 +214,10 @@ func (p *OpenTelemetryProvider) getOrCreateGauge(name string) metric.Float64Obse
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Double-check after acquiring write lock
 	if gauge, exists := p.gauges[name]; exists {
 		return gauge
 	}
 
-	// For testing purposes, create a simple gauge without callback
-	// In production, users would set up proper callbacks externally
 	gauge, err := p.meter.Float64ObservableGauge(name,
 		metric.WithDescription("Gauge metric: "+name),
 	)

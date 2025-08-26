@@ -16,11 +16,9 @@ import (
 func HandleSyncPermissionsCommand(app *pocketbase.PocketBase, cmd *cobra.Command, args []string) {
 	log.Info("Starting permission sync process")
 
-	// Get all hardcoded permissions
 	hardcodedPermissions := permission.GetAllPermissions()
 	log.Info("Found hardcoded permissions", "count", len(hardcodedPermissions))
 
-	// Get the permissions collection
 	permissionsCollection, err := app.FindCollectionByNameOrId("permissions")
 	if err != nil {
 		log.Error("Failed to find permissions collection", "error", err)
@@ -29,12 +27,10 @@ func HandleSyncPermissionsCommand(app *pocketbase.PocketBase, cmd *cobra.Command
 
 	var createdCount, skippedCount int
 
-	// Process permissions in batches for better performance
 	batchSize := 50
 	recordsToCreate := make([]*core.Record, 0, batchSize)
 
 	for _, perm := range hardcodedPermissions {
-		// Check if permission already exists
 		existingRecord, err := findPermissionBySlug(app, perm.Slug)
 		if err != nil {
 			log.Error("Error checking permission existence", "slug", perm.Slug, "error", err)
@@ -47,7 +43,6 @@ func HandleSyncPermissionsCommand(app *pocketbase.PocketBase, cmd *cobra.Command
 			continue
 		}
 
-		// Create new permission record
 		record := core.NewRecord(permissionsCollection)
 		record.Set("slug", perm.Slug)
 		record.Set("name", perm.Name)
@@ -55,7 +50,6 @@ func HandleSyncPermissionsCommand(app *pocketbase.PocketBase, cmd *cobra.Command
 
 		recordsToCreate = append(recordsToCreate, record)
 
-		// Process batch when it reaches batchSize
 		if len(recordsToCreate) >= batchSize {
 			if err := savePermissionBatch(app, recordsToCreate); err != nil {
 				log.Error("Failed to save permission batch", "error", err)

@@ -21,7 +21,7 @@ type Cron struct {
 
 // RegisterCrons registers all scheduled crons with the PocketBase application
 // This function should be called during app initialization, before OnServe setup
-func RegisterCrons(app *pocketbase.PocketBase) {
+func RegisterCrons(app *pocketbase.PocketBase) error {
 	if app == nil {
 		panic("RegisterCrons: app cannot be nil")
 	}
@@ -63,13 +63,11 @@ func RegisterCrons(app *pocketbase.PocketBase) {
 			continue
 		}
 
-		// Validate cron expression before registering
 		if err := cronutils.ValidateCronExpression(cronJob.CronExpr); err != nil {
 			log.Error("Invalid cron expression for cron job", "cron_id", cronJob.ID, "cron", cronJob.CronExpr, "error", err)
-			continue
+			return err
 		}
 
-		// Register the cron job with PocketBase scheduler
 		app.Cron().MustAdd(cronJob.ID, cronJob.CronExpr, cronJob.Handler)
 
 		log.Info("Registered cron job",
@@ -80,4 +78,5 @@ func RegisterCrons(app *pocketbase.PocketBase) {
 	}
 
 	log.Info("Cron job registration completed", "enabled_cron_jobs", len(crons))
+	return nil
 }

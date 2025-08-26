@@ -17,7 +17,6 @@ func ParseUserExportJobPayload(job *JobData) (*UserExportJobPayload, error) {
 
 	var payload UserExportJobPayload
 
-	// Convert the generic payload map back to our typed structure
 	payloadBytes, err := json.Marshal(job.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
@@ -27,7 +26,6 @@ func ParseUserExportJobPayload(job *JobData) (*UserExportJobPayload, error) {
 		return nil, fmt.Errorf("failed to unmarshal user export payload: %w", err)
 	}
 
-	// Validate required fields
 	if payload.Type == "" {
 		return nil, fmt.Errorf("payload type is required")
 	}
@@ -64,7 +62,6 @@ func ParseEmailJobPayload(job *JobData) (*EmailJobPayload, error) {
 		return nil, fmt.Errorf("failed to unmarshal email payload: %w", err)
 	}
 
-	// Validate required fields
 	if payload.Type == "" {
 		return nil, fmt.Errorf("payload type is required")
 	}
@@ -101,7 +98,6 @@ func ParseDataProcessingJobPayload(job *JobData) (*DataProcessingJobPayload, err
 		return nil, fmt.Errorf("failed to unmarshal data processing payload: %w", err)
 	}
 
-	// Validate required fields
 	if payload.Type == "" {
 		return nil, fmt.Errorf("payload type is required")
 	}

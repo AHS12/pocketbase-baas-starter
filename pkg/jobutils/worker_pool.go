@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"ims-pocketbase-baas-starter/pkg/cronutils"
 	log "ims-pocketbase-baas-starter/pkg/logger"
-	"ims-pocketbase-baas-starter/pkg/metrics"
 	"sync"
 	"time"
 
@@ -23,6 +22,8 @@ type WorkerPool struct {
 	maxWorkers  int
 	app         *pocketbase.PocketBase
 	registry    *JobRegistry
+	isShutdown  bool
+	mu          sync.RWMutex
 }
 
 // Worker represents a single worker in the pool
@@ -44,20 +45,23 @@ type WorkerJobResult struct {
 // NewWorkerPool creates a new persistent worker pool
 func NewWorkerPool(app *pocketbase.PocketBase, registry *JobRegistry, maxWorkers int) *WorkerPool {
 	if maxWorkers <= 0 {
-		maxWorkers = 5 // Default to 5 workers
+		maxWorkers = 5
 	}
+
+	jobQueueSize := maxWorkers * 10
+	resultQueueSize := maxWorkers * 10
 
 	pool := &WorkerPool{
 		workers:     make([]*Worker, 0, maxWorkers),
-		jobQueue:    make(chan *core.Record, maxWorkers*2),    // Buffer for jobs
-		resultQueue: make(chan WorkerJobResult, maxWorkers*2), // Buffer for results
+		jobQueue:    make(chan *core.Record, jobQueueSize),
+		resultQueue: make(chan WorkerJobResult, resultQueueSize),
 		quit:        make(chan bool),
 		maxWorkers:  maxWorkers,
 		app:         app,
 		registry:    registry,
+		isShutdown:  false,
 	}
 
-	// Start workers
 	for i := 0; i < maxWorkers; i++ {
 		worker := &Worker{
 			id:          i,
@@ -72,69 +76,129 @@ func NewWorkerPool(app *pocketbase.PocketBase, registry *JobRegistry, maxWorkers
 		go worker.start(&pool.wg)
 	}
 
-	log.Info("Worker pool started", "workers", maxWorkers)
+	log.Info("Worker pool started", "workers", maxWorkers, "job_queue_size", jobQueueSize)
 	return pool
+}
+
+// IsShutdown returns whether the worker pool has been shut down
+func (wp *WorkerPool) IsShutdown() bool {
+	wp.mu.RLock()
+	defer wp.mu.RUnlock()
+	return wp.isShutdown
 }
 
 // ProcessJobs processes a batch of jobs using the worker pool
 func (wp *WorkerPool) ProcessJobs(jobs []*core.Record) []error {
+	// Check if pool is shutdown
+	if wp.IsShutdown() {
+		err := fmt.Errorf("worker pool is shutdown")
+		results := make([]error, len(jobs))
+		for i := range results {
+			results[i] = err
+		}
+		return results
+	}
+
 	if len(jobs) == 0 {
 		return nil
 	}
 
-	// Record queue size metrics before processing
-	metricsProvider := metrics.GetInstance()
-	if metricsProvider != nil {
-		metrics.RecordQueueSize(metricsProvider, "worker_pool", len(wp.jobQueue))
+	jobIndexMap := make(map[string]int, len(jobs))
+	for i, job := range jobs {
+		jobIndexMap[job.Id] = i
 	}
 
 	// Send jobs to workers
-	for _, job := range jobs {
+	sendErrors := make([]error, len(jobs))
+	jobsSent := 0
+	for i, job := range jobs {
 		select {
 		case wp.jobQueue <- job:
-			// Job queued successfully
+			jobsSent++
 		case <-time.After(30 * time.Second):
-			// Timeout - this shouldn't happen with proper buffer sizing
+			err := fmt.Errorf("job queue timeout for job %s", job.Id)
 			log.Error("Job queue timeout", "job_id", job.Id)
+			sendErrors[i] = err
 		}
+	}
+
+	// If we couldn't send any jobs, return the send errors
+	if jobsSent == 0 {
+		log.Warn("No jobs were sent to worker pool", "total_jobs", len(jobs))
+		return sendErrors
 	}
 
 	// Collect results
 	results := make([]error, len(jobs))
-	for i := range len(jobs) {
+	copy(results, sendErrors)
+
+	for i := 0; i < jobsSent; i++ {
 		select {
 		case result := <-wp.resultQueue:
-			// Find the job index and store the result
-			for j, job := range jobs {
-				if job.Id == result.JobID {
-					results[j] = result.Error
+			if jobIndex, exists := jobIndexMap[result.JobID]; exists {
+				results[jobIndex] = result.Error
+			} else {
+				log.Warn("Received result for unknown job", "job_id", result.JobID)
+			}
+		case <-time.After(5 * time.Minute):
+			err := fmt.Errorf("job processing timeout")
+			log.Error("Job processing timeout")
+			for j := range results {
+				if results[j] == nil {
+					results[j] = err
 					break
 				}
 			}
-		case <-time.After(5 * time.Minute):
-			// Timeout for job processing
-			log.Error("Job processing timeout")
-			results[i] = fmt.Errorf("job processing timeout")
 		}
 	}
+
+	// Log processing summary
+	successCount := 0
+	failureCount := 0
+	for _, err := range results {
+		if err == nil {
+			successCount++
+		} else {
+			failureCount++
+		}
+	}
+
+	log.Info("Worker pool job processing completed",
+		"total_jobs", len(jobs),
+		"jobs_sent", jobsSent,
+		"successful", successCount,
+		"failed", failureCount)
 
 	return results
 }
 
-// ProcessJobsConcurrently is an alias for ProcessJobs for compatibility
+// ProcessJobsConcurrently processes jobs concurrently using the worker pool
 func (wp *WorkerPool) ProcessJobsConcurrently(jobs []*core.Record, maxWorkers int) []error {
-	// Ignore maxWorkers parameter as we use the pool's configured workers
+	if len(jobs) == 0 {
+		return nil
+	}
+
+	log.Debug("ProcessJobsConcurrently called with maxWorkers parameter (ignored)",
+		"requested_workers", maxWorkers,
+		"configured_workers", wp.maxWorkers)
+
 	return wp.ProcessJobs(jobs)
 }
 
 // Shutdown gracefully shuts down the worker pool
 func (wp *WorkerPool) Shutdown(ctx context.Context) error {
-	log.Info("Shutting down worker pool")
+	wp.mu.Lock()
+	if wp.isShutdown {
+		wp.mu.Unlock()
+		log.Info("Worker pool already shutdown")
+		return nil
+	}
+	wp.isShutdown = true
+	wp.mu.Unlock()
 
-	// Close job queue to signal no more jobs
+	log.Info("Shutting down worker pool")
 	close(wp.jobQueue)
 
-	// Wait for workers to finish with timeout
 	done := make(chan struct{})
 	go func() {
 		wp.wg.Wait()
@@ -146,28 +210,12 @@ func (wp *WorkerPool) Shutdown(ctx context.Context) error {
 		log.Info("Worker pool shutdown completed")
 		return nil
 	case <-ctx.Done():
-		// Force shutdown
 		close(wp.quit)
 		log.Warn("Worker pool force shutdown due to timeout")
 		return ctx.Err()
 	}
 }
 
-// GetStats returns worker pool statistics
-func (wp *WorkerPool) GetStats() map[string]any {
-	return map[string]any{
-		"worker_count":      len(wp.workers),
-		"max_workers":       wp.maxWorkers,
-		"job_queue_size":    len(wp.jobQueue),
-		"job_queue_cap":     cap(wp.jobQueue),
-		"result_queue_size": len(wp.resultQueue),
-		"result_queue_cap":  cap(wp.resultQueue),
-	}
-}
-
-// Worker methods
-
-// start begins the worker's job processing loop
 func (w *Worker) start(wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -175,52 +223,57 @@ func (w *Worker) start(wg *sync.WaitGroup) {
 		select {
 		case job, ok := <-w.jobQueue:
 			if !ok {
-				// Job queue closed, worker should exit
 				return
 			}
 
-			// Process the job
 			err := w.processJob(job)
 
-			// Send result
-			w.resultQueue <- WorkerJobResult{
-				JobID: job.Id,
-				Error: err,
+			select {
+			case w.resultQueue <- WorkerJobResult{JobID: job.Id, Error: err}:
+			case <-time.After(10 * time.Second):
+				log.Error("Timeout sending result to result queue", "job_id", job.Id, "worker_id", w.id)
 			}
 
 		case <-w.quit:
-			// Forced shutdown
 			return
 		}
 	}
 }
 
-// processJob processes a single job (similar to JobProcessor.ProcessJob but optimized for worker pool)
 func (w *Worker) processJob(record *core.Record) error {
-	// Validate job record
-	if err := w.validateJobRecord(record); err != nil {
-		return fmt.Errorf("job validation failed: %w", err)
+	if record == nil || record.Id == "" || record.Collection().Name != QueuesCollection {
+		return fmt.Errorf("invalid job record")
 	}
 
-	// Attempt to reserve the job (atomic operation to prevent race conditions)
-	if err := w.reserveJob(record); err != nil {
-		// Check if the job is already reserved by another process
-		if w.isJobReserved(record) {
-			return fmt.Errorf("job %s is already reserved", record.Id)
+	originalReservedAt := record.GetString("reserved_at")
+	if originalReservedAt != "" && w.isJobReserved(record) {
+		return fmt.Errorf("job %s is already reserved", record.Id)
+	}
+
+	now := time.Now()
+	record.Set("reserved_at", now.Format(time.RFC3339))
+
+	if err := w.app.Save(record); err != nil {
+		record.Set("reserved_at", originalReservedAt)
+		return fmt.Errorf("failed to reserve job %s: %w", record.Id, err)
+	}
+
+	jobData, err := ParseJobDataFromRecord(record)
+	if err != nil {
+		failErr := w.failJob(record, fmt.Errorf("failed to parse job data: %w", err))
+		if failErr != nil {
+			log.Error("Failed to mark job as failed", "job_id", record.Id, "worker_id", w.id, "error", failErr)
 		}
 		return err
 	}
 
-	// Parse job data
-	jobData, err := ParseJobDataFromRecord(record)
-	if err != nil {
-		return w.failJob(record, fmt.Errorf("failed to parse job data: %w", err))
-	}
-
-	// Get handler
 	handler, err := w.registry.GetHandler(jobData.Type)
 	if err != nil {
-		return w.failJob(record, fmt.Errorf("no handler for job type '%s': %w", jobData.Type, err))
+		failErr := w.failJob(record, fmt.Errorf("no handler for job type '%s': %w", jobData.Type, err))
+		if failErr != nil {
+			log.Error("Failed to mark job as failed", "job_id", record.Id, "worker_id", w.id, "error", failErr)
+		}
+		return err
 	}
 
 	// Execute job with panic recovery
@@ -229,38 +282,34 @@ func (w *Worker) processJob(record *core.Record) error {
 		defer func() {
 			if r := recover(); r != nil {
 				jobErr = fmt.Errorf("job handler panicked: %v", r)
-				log.Error("Job handler panic", "job_id", record.Id, "panic", r)
+				log.Error("Job handler panic", "job_id", record.Id, "worker_id", w.id, "panic", r)
 			}
 		}()
 
-		// Create execution context using cronutils
 		ctx := cronutils.NewCronExecutionContext(w.app, record.Id)
-
+		ctx.LogStart(fmt.Sprintf("Processing %s job: %s", jobData.Type, jobData.Name))
 		jobErr = handler.Handle(ctx, jobData)
+
+		if jobErr == nil {
+			ctx.LogEnd("Job processed successfully")
+		}
 	}()
 
-	// Handle result
 	if jobErr != nil {
-		log.Error("Job failed", "job_id", record.Id, "worker_id", w.id, "error", jobErr)
-		return w.failJob(record, jobErr)
+		log.Error("Job failed", "job_id", record.Id, "worker_id", w.id, "job_type", jobData.Type, "error", jobErr)
+		failErr := w.failJob(record, jobErr)
+		if failErr != nil {
+			log.Error("Failed to mark job as failed", "job_id", record.Id, "worker_id", w.id, "error", failErr)
+		}
+		return jobErr
 	}
 
-	// Complete job
-	return w.completeJob(record)
-}
+	if err := w.app.Delete(record); err != nil {
+		log.Error("Failed to complete job", "job_id", record.Id, "worker_id", w.id, "error", err)
+		return err
+	}
 
-// Helper methods (similar to JobProcessor but optimized)
-
-func (w *Worker) validateJobRecord(record *core.Record) error {
-	if record == nil {
-		return fmt.Errorf("job record cannot be nil")
-	}
-	if record.Id == "" {
-		return fmt.Errorf("job record must have a valid ID")
-	}
-	if record.Collection().Name != QueuesCollection {
-		return fmt.Errorf("job record must be from the '%s' collection", QueuesCollection)
-	}
+	log.Info("Job completed successfully", "job_id", record.Id, "worker_id", w.id, "job_type", jobData.Type)
 	return nil
 }
 
@@ -276,56 +325,6 @@ func (w *Worker) isJobReserved(record *core.Record) bool {
 	}
 
 	return time.Since(reservedAt) < 5*time.Minute
-}
-
-func (w *Worker) reserveJob(record *core.Record) error {
-	// Store original values for potential rollback
-	originalReservedAt := record.GetString("reserved_at")
-
-	// Check if already reserved (quick check to avoid unnecessary work)
-	if originalReservedAt != "" && w.isJobReserved(record) {
-		return fmt.Errorf("job %s is already reserved", record.Id)
-	}
-
-	// Reserve the job
-	now := time.Now()
-	record.Set("reserved_at", now.Format(time.RFC3339))
-
-	// Attempt to save the reservation
-	if err := w.app.Save(record); err != nil {
-		// Restore original values on failure
-		record.Set("reserved_at", originalReservedAt)
-
-		// Check if the failure was due to concurrent reservation
-		freshRecord, freshErr := w.app.FindRecordById("queues", record.Id)
-		if freshErr == nil && freshRecord.GetString("reserved_at") != record.GetString("reserved_at") {
-			if w.isJobReserved(freshRecord) {
-				return fmt.Errorf("job %s was reserved by another worker", record.Id)
-			}
-		}
-
-		return fmt.Errorf("failed to reserve job %s: %w", record.Id, err)
-	}
-
-	// Verify reservation was successful (race condition detection)
-	freshRecord, err := w.app.FindRecordById("queues", record.Id)
-	if err != nil {
-		return fmt.Errorf("failed to verify reservation for job %s: %w", record.Id, err)
-	}
-
-	// Check if we actually got the reservation
-	if freshRecord.GetString("reserved_at") != record.GetString("reserved_at") {
-		// Someone else got it, restore our record and fail
-		record.Set("reserved_at", freshRecord.GetString("reserved_at"))
-		return fmt.Errorf("job %s was reserved by another worker", record.Id)
-	}
-
-	log.Debug("Job reserved", "job_id", record.Id, "reserved_at", now)
-	return nil
-}
-
-func (w *Worker) completeJob(record *core.Record) error {
-	return w.app.Delete(record)
 }
 
 func (w *Worker) failJob(record *core.Record, jobErr error) error {

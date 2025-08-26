@@ -9,16 +9,13 @@ import (
 
 // HandleHealthCheckCommand performs a basic health check
 func HandleHealthCheckCommand(app *pocketbase.PocketBase, cmd *cobra.Command, args []string) {
-	// Perform basic health checks
 	log.Info("Running health check...")
 
-	// Check if app is properly initialized
 	if app == nil {
 		log.Error("Application is not properly initialized")
 		return
 	}
 
-	// Check if settings are loaded
 	if app.Settings() == nil {
 		log.Error("Application settings are not loaded")
 		return

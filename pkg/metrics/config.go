@@ -27,12 +27,10 @@ func LoadConfig() Config {
 		},
 	}
 
-	// If provider is set but enabled is false, disable the provider
 	if !config.Enabled {
 		config.Provider = ProviderDisabled
 	}
 
-	// Validate provider type
 	if !isValidProvider(config.Provider) {
 		config.Provider = ProviderDisabled
 	}

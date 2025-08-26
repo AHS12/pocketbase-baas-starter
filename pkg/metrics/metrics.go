@@ -39,7 +39,6 @@ func NewProvider(config Config) MetricsProvider {
 	case ProviderOpenTelemetry:
 		return NewOpenTelemetryProvider(config)
 	default:
-		// Fallback to no-op for unknown providers
 		return NewNoOpProvider()
 	}
 }

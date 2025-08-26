@@ -18,7 +18,6 @@ func HandleSystemQueue(app *pocketbase.PocketBase) {
 	ctx := cronutils.NewCronExecutionContext(app, "system_queue")
 	ctx.LogStart("Starting system queue process operations")
 
-	// Get the pre-initialized job processor
 	jobManager := jobs.GetJobManager()
 	processor := jobManager.GetProcessor()
 
@@ -27,7 +26,6 @@ func HandleSystemQueue(app *pocketbase.PocketBase) {
 		return
 	}
 
-	// Get configuration for concurrent processing
 	maxWorkers := common.GetEnvInt("JOB_MAX_WORKERS", 5)                 // Default 5 concurrent workers
 	batchSize := common.GetEnvInt("JOB_BATCH_SIZE", 50)                  // Process up to 50 jobs per run
 	reservationTimeout := common.GetEnvInt("JOB_RESERVATION_TIMEOUT", 5) // Default 5 minutes reservation timeout
@@ -55,11 +53,8 @@ func HandleSystemQueue(app *pocketbase.PocketBase) {
 		metrics.RecordQueueSize(metricsProvider, "system", len(queues))
 	}
 
-	// Process jobs concurrently if any are available
 	if len(queues) > 0 {
 		errors := processor.ProcessJobsConcurrently(queues, maxWorkers)
-
-		// Count and log results
 		successCount := 0
 		failureCount := 0
 		for _, err := range errors {
