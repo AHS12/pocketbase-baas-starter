@@ -15,14 +15,12 @@ import (
 
 // HandleUserWelcomeEmail handles sending a welcome email to new users
 func HandleUserWelcomeEmail(e *core.RecordEvent) error {
-	// Get app name from settings or use default
 	appName := common.GetEnv("APP_NAME", "N/A")
 	settings := e.App.Settings()
 	if settings.Meta.AppName != "" {
 		appName = settings.Meta.AppName
 	}
 
-	// Get user details
 	email := e.Record.GetString("email")
 	name := e.Record.GetString("name")
 	appUrl := common.GetEnv("APP_URL", "N/A")
@@ -33,7 +31,6 @@ func HandleUserWelcomeEmail(e *core.RecordEvent) error {
 		name = email // Use email as name if name is not provided
 	}
 
-	// Create email job payload
 	payload := jobutils.EmailJobPayload{
 		Type: jobutils.JobTypeEmail,
 		Data: jobutils.EmailJobData{
@@ -54,7 +51,6 @@ func HandleUserWelcomeEmail(e *core.RecordEvent) error {
 		},
 	}
 
-	// Create job record in queues collection
 	collection, err := e.App.FindCollectionByNameOrId("queues")
 	if err != nil {
 		log.Error("Failed to find queues collection", "error", err)
@@ -95,7 +91,6 @@ func HandleUserCreateSettings(e *core.RecordEvent) error {
 		"email", e.Record.GetString("email"),
 	)
 
-	// Find the user_settings collection
 	userSettingsCollection, err := e.App.FindCollectionByNameOrId("user_settings")
 	if err != nil {
 		log.Error("user_settings collection not found", "error", err)
@@ -112,9 +107,7 @@ func HandleUserCreateSettings(e *core.RecordEvent) error {
 		{"notifications", "true"},
 	}
 
-	// Create user settings for each default setting
 	for _, defaultSetting := range defaultUserSettings {
-		// Find the setting record by slug
 		settingRecord, err := e.App.FindFirstRecordByFilter("settings", "slug = {:slug}", map[string]any{
 			"slug": defaultSetting.SettingSlug,
 		})
@@ -125,7 +118,6 @@ func HandleUserCreateSettings(e *core.RecordEvent) error {
 			continue
 		}
 
-		// Create new user setting record
 		userSettingRecord := core.NewRecord(userSettingsCollection)
 		userSettingData := map[string]any{
 			"user":     e.Record.Id,
@@ -133,10 +125,8 @@ func HandleUserCreateSettings(e *core.RecordEvent) error {
 			"value":    defaultSetting.Value,
 		}
 
-		// Load the data into the record
 		userSettingRecord.Load(userSettingData)
 
-		// Save the user setting record
 		if err := e.App.Save(userSettingRecord); err != nil {
 			log.Error("Failed to create user setting",
 				"user_id", e.Record.Id,
@@ -154,13 +144,8 @@ func HandleUserCreateSettings(e *core.RecordEvent) error {
 
 // HandleUserCacheClear handles clearing user-related cache when a user is updated
 func HandleUserCacheClear(e *core.RecordEvent) error {
-	// Get the cache service instance
 	cacheService := cache.GetInstance()
-
-	// Generate the cache key for this user's permissions
 	cacheKey := cache.CacheKey{}.UserPermissions(e.Record.Id)
-
-	// Delete the user's permission cache entry
 	cacheService.Delete(cacheKey)
 
 	return e.Next()

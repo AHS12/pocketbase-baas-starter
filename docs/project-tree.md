@@ -7,13 +7,15 @@ This document provides a comprehensive overview of the IMS PocketBase BaaS Start
 ```
 ims-pocketbase-baas-starter/
 ├── 📁 cmd/                     # Application entry points
-├── 📁 monitoring/              # Monitoring configurations (Prometheus, Grafana)
 ├── 📁 docs/                    # Project documentation
 ├── 📁 internal/                # Private application code
+├── 📁 monitoring/              # Monitoring configurations (Prometheus, Grafana)
 ├── 📁 pb_data/                 # PocketBase data directory
 ├── 📁 pb_public/               # PocketBase public assets
 ├── 📁 pkg/                     # Reusable packages
 ├── 📁 scripts/                 # Build and setup scripts
+├── 📁 templates/               # Template files (email templates, etc.)
+├── 📁 tmp/                     # Temporary files (git ignored)
 ├── 🐳 Dockerfile               # Production container definition
 ├── 🐳 docker-compose.yml       # Production container orchestration
 ├── 🐹 go.mod                   # Go module definition
@@ -32,7 +34,9 @@ cmd/
 ├── migrate-gen/          # Migration CLI generator
 │   ├── main.go          # CLI entry point
 │   ├── cli.go           # Command-line interface logic
+│   ├── cli_test.go      # CLI tests
 │   ├── template.go      # Migration template generation
+│   ├── template_test.go # Template generation tests
 │   └── types.go         # CLI-specific types
 └── server/              # Main application server
     └── main.go          # Server entry point
@@ -49,6 +53,8 @@ internal/
 ├── app/                 # Application setup and configuration
 │   ├── app.go          # Main app initialization and DI orchestration
 │   └── app_test.go     # Application setup tests
+├── commands/           # CLI commands registration
+│   └── commands.go     # CLI command registration and configuration
 ├── crons/              # Cron job definitions
 │   └── crons.go        # Cron job registration and configuration
 ├── database/           # Database-related code
@@ -120,9 +126,12 @@ pkg/
 │   ├── scanner.go    # Migration file scanning
 │   ├── filesystem.go # File system operations
 │   └── *_test.go     # Migration tests
-└── permission/        # Permission system
-    ├── permissions.go # Permission constants and definitions
-    └── permissions_test.go # Permission tests
+├── permission/        # Permission system
+│   ├── permissions.go # Permission constants and definitions
+│   └── permissions_test.go # Permission tests
+└── response/          # HTTP response utilities
+    ├── response.go   # Standardized HTTP response helpers
+    └── response_test.go # Response utility tests
 ```
 
 ### 📊 `monitoring/` - Monitoring Configurations
@@ -157,10 +166,23 @@ docs/
 ├── middleware.md         # Custom middleware
 ├── migrations.md         # Database migrations
 ├── apidoc.md            # API documentation
-├── docker-metrics.md     # Metrics monitoring setup
+├── cli-commands.md       # CLI commands and usage
 ├── git-hooks.md          # Git hooks setup
 └── project-tree.md       # This file - project structure
 ```
+
+### 📁 `templates/` - Template Files
+
+Contains template files used by the application.
+
+```
+templates/
+└── emails/              # Email templates
+    ├── welcome.html    # HTML welcome email template
+    └── welcome.txt     # Plain text welcome email template
+```
+
+**Purpose:** Stores template files that can be used by the application for generating dynamic content, such as emails or documents.
 
 ## Key Design Principles
 
@@ -209,6 +231,10 @@ docs/
 - `docker-compose.dev.yml` - Development container configuration
 - `Dockerfile` - Production container definition
 - `makefile` - Development commands
+
+### Temporary Files
+- `tmp/` - Temporary files and directories (git ignored)
+- `tmp/` - Temporary files directory (git ignored)
 
 ### Monitoring Files
 - `monitoring/local/` - Development monitoring setup

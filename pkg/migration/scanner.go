@@ -34,12 +34,10 @@ var (
 
 // ScanExistingMigrations scans the migrations directory for existing migration files
 func ScanExistingMigrations(dir string) ([]MigrationInfo, error) {
-	// Check if directory exists
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		return nil, fmt.Errorf("migrations directory does not exist: %s (%w)", dir, ErrMigrationsDir)
 	}
 
-	// Read directory contents
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read migrations directory: %w", err)
@@ -58,7 +56,6 @@ func ScanExistingMigrations(dir string) ([]MigrationInfo, error) {
 			continue
 		}
 
-		// Extract migration number and name from filename
 		number, name, err := parseMigrationFilename(filename)
 		if err != nil {
 			// Skip malformed migration files
@@ -72,7 +69,6 @@ func ScanExistingMigrations(dir string) ([]MigrationInfo, error) {
 		})
 	}
 
-	// Sort migrations by number
 	sort.Slice(migrations, func(i, j int) bool {
 		return migrations[i].Number < migrations[j].Number
 	})
@@ -86,7 +82,6 @@ func GetNextMigrationNumber(migrations []MigrationInfo) int {
 		return 1
 	}
 
-	// Find the highest migration number
 	highest := 0
 	for _, migration := range migrations {
 		if migration.Number > highest {

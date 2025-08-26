@@ -19,18 +19,31 @@ func TestRegisterHooks(t *testing.T) {
 	}()
 
 	// Register hooks
-	RegisterHooks(app)
+	err := RegisterHooks(app)
+	if err != nil {
+		t.Fatalf("RegisterHooks failed: %v", err)
+	}
 
 	// Verify that hooks are registered by checking if the hook exists
 	// Note: PocketBase doesn't provide direct access to registered hooks,
 	// so we mainly test that registration doesn't fail
 
 	// Test individual registration functions
-	registerRecordHooks(app)
-	registerCollectionHooks(app)
-	registerRequestHooks(app)
-	registerMailerHooks(app)
-	registerRealtimeHooks(app)
+	if err := registerRecordHooks(app); err != nil {
+		t.Fatalf("registerRecordHooks failed: %v", err)
+	}
+	if err := registerCollectionHooks(app); err != nil {
+		t.Fatalf("registerCollectionHooks failed: %v", err)
+	}
+	if err := registerRequestHooks(app); err != nil {
+		t.Fatalf("registerRequestHooks failed: %v", err)
+	}
+	if err := registerMailerHooks(app); err != nil {
+		t.Fatalf("registerMailerHooks failed: %v", err)
+	}
+	if err := registerRealtimeHooks(app); err != nil {
+		t.Fatalf("registerRealtimeHooks failed: %v", err)
+	}
 }
 
 func TestHookRegistrationFunctions(t *testing.T) {
@@ -39,7 +52,7 @@ func TestHookRegistrationFunctions(t *testing.T) {
 	// Test each registration function individually
 	tests := []struct {
 		name string
-		fn   func(*pocketbase.PocketBase)
+		fn   func(*pocketbase.PocketBase) error
 	}{
 		{"registerRecordHooks", registerRecordHooks},
 		{"registerCollectionHooks", registerCollectionHooks},
@@ -56,7 +69,10 @@ func TestHookRegistrationFunctions(t *testing.T) {
 				}
 			}()
 
-			tt.fn(app)
+			err := tt.fn(app)
+			if err != nil {
+				t.Fatalf("%s failed: %v", tt.name, err)
+			}
 		})
 	}
 }
@@ -78,8 +94,15 @@ func TestHooksWithMetricsInstrumentation(t *testing.T) {
 	}()
 
 	// Test the instrumented hooks specifically
-	registerRecordHooks(app) // Contains user_create_settings instrumentation
-	registerMailerHooks(app) // Contains email operation instrumentation
+	err := registerRecordHooks(app) // Contains user_create_settings instrumentation
+	if err != nil {
+		t.Fatalf("registerRecordHooks failed: %v", err)
+	}
+
+	err = registerMailerHooks(app) // Contains email operation instrumentation
+	if err != nil {
+		t.Fatalf("registerMailerHooks failed: %v", err)
+	}
 
 	// Reset metrics for cleanup
 	metrics.Reset()

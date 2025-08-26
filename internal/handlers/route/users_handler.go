@@ -9,7 +9,6 @@ import (
 )
 
 func HandleUserExport(e *core.RequestEvent) error {
-	// Create data_processing job payload for user export
 	payload := jobutils.DataProcessingJobPayload{
 		Type: jobutils.JobTypeDataProcessing,
 		Data: jobutils.DataProcessingJobData{

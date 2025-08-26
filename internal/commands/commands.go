@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"ims-pocketbase-baas-starter/internal/handlers/command"
 
 	"github.com/pocketbase/pocketbase"
@@ -19,9 +20,9 @@ type Command struct {
 
 // RegisterCommands registers all custom console commands with the PocketBase application
 // This function follows the same pattern as RegisterCrons, RegisterJobs, and RegisterRoutes
-func RegisterCommands(app *pocketbase.PocketBase) {
+func RegisterCommands(app *pocketbase.PocketBase) error {
 	if app == nil {
-		panic("RegisterCommands: app cannot be nil")
+		return fmt.Errorf("RegisterCommands: app cannot be nil")
 	}
 
 	// Define all custom commands
@@ -72,4 +73,5 @@ func RegisterCommands(app *pocketbase.PocketBase) {
 		// Register the command with PocketBase
 		app.RootCmd.AddCommand(cobraCmd)
 	}
+	return nil
 }

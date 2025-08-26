@@ -28,18 +28,15 @@ func NewDataProcessingJobHandler(app *pocketbase.PocketBase) *DataProcessingJobH
 func (h *DataProcessingJobHandler) Handle(ctx *cronutils.CronExecutionContext, job *jobutils.JobData) error {
 	ctx.LogStart(fmt.Sprintf("Processing data processing job: %s", job.ID))
 
-	// Parse payload using centralized utility function
 	dataPayload, err := jobutils.ParseDataProcessingJobPayload(job)
 	if err != nil {
 		return fmt.Errorf("failed to parse data processing job payload: %w", err)
 	}
 
-	// Additional validation specific to this handler
 	if err := h.validateDataProcessingPayload(dataPayload); err != nil {
 		return fmt.Errorf("invalid data processing job payload: %w", err)
 	}
 
-	// Log processing details
 	log.Info("Processing data job",
 		"job_id", job.ID,
 		"operation", dataPayload.Data.Operation,
@@ -96,7 +93,6 @@ func (h *DataProcessingJobHandler) validateDataProcessingPayload(payload *jobuti
 	}
 
 	// Additional validation can be added here for handler-specific requirements
-	// Basic validation is already done in the ParseDataProcessingJobPayload function
 
 	return nil
 }
@@ -162,13 +158,11 @@ func (h *DataProcessingJobHandler) handleExportOperation(ctx *cronutils.CronExec
 
 	switch payload.Data.Source {
 	case jobutils.DataProcessingCollectionUsers:
-		//we will call the handler for users
 		err := export.HandleUserExport(h.app, job.ID, payload)
 		if err != nil {
 			return err
 		}
 	default:
-		//we will throw error for invalid source
 		return fmt.Errorf("unsupported data processing source: %s", payload.Data.Source)
 
 	}

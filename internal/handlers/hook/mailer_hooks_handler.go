@@ -20,7 +20,6 @@ func addressesToStrings(addresses []mail.Address) []string {
 
 // HandleMailerSend handles email send events
 func HandleMailerSend(e *core.MailerEvent) error {
-	// Log the email send attempt
 
 	log.Info("Email being sent",
 		"to", strings.Join(addressesToStrings(e.Message.To), ", "),
@@ -55,7 +54,6 @@ func HandleMailerBeforeSend(e *core.MailerEvent) error {
 
 // HandleMailerAfterSend handles post-send email events
 func HandleMailerAfterSend(e *core.MailerEvent) error {
-	// This would be called after the email is sent
 	log.Info("Email sent successfully",
 		"to", strings.Join(addressesToStrings(e.Message.To), ", "),
 		"subject", e.Message.Subject,

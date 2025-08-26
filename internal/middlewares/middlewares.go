@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/hook"
 
@@ -17,7 +18,11 @@ type Middleware struct {
 }
 
 // RegisterMiddlewares registers all application middlewares with the PocketBase router
-func RegisterMiddlewares(e *core.ServeEvent) {
+func RegisterMiddlewares(e *core.ServeEvent) error {
+	if e == nil {
+		return fmt.Errorf("RegisterMiddlewares: serve event cannot be nil")
+	}
+
 	// Define all middlewares
 	middlewares := []Middleware{
 		{
@@ -55,6 +60,8 @@ func RegisterMiddlewares(e *core.ServeEvent) {
 			Func: middleware.Handler,
 		})
 	}
+
+	return nil
 }
 
 // getMetricsMiddlewareHandler creates the metrics middleware handler

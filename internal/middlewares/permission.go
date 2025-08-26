@@ -41,16 +41,13 @@ func NewPermissionMiddleware() *PermissionMiddleware {
 // Returns:
 //   - []string: Array of permission slugs the user has access to
 func (m *PermissionMiddleware) getUserPermissions(app core.App, user *core.Record) []string {
-	// Check cache first
 	cacheKey := m.cacheKey.UserPermissions(user.Id)
 	if cachedPerms, found := m.cache.GetStringSlice(cacheKey); found {
 		return cachedPerms
 	}
 
-	// Cache miss - fetch and compute permissions
 	permissions := m.fetchUserPermissions(app, user)
 
-	// Cache for 5 minutes
 	m.cache.SetWithExpiration(cacheKey, permissions, PermissionCacheTime)
 
 	return permissions
@@ -58,11 +55,9 @@ func (m *PermissionMiddleware) getUserPermissions(app core.App, user *core.Recor
 
 // fetchUserPermissions fetches user permissions from database (optimized to avoid N+1 queries)
 func (m *PermissionMiddleware) fetchUserPermissions(app core.App, user *core.Record) []string {
-	// Extract user's direct permissions and roles
 	userPermissions := user.GetStringSlice("permissions")
 	roles := user.GetStringSlice("roles")
 
-	// Batch fetch all roles to get their permissions
 	if len(roles) > 0 {
 		roleRecords, err := app.FindRecordsByIds(RolesCollection, roles)
 		if err != nil {
@@ -76,7 +71,6 @@ func (m *PermissionMiddleware) fetchUserPermissions(app core.App, user *core.Rec
 		}
 	}
 
-	// Remove duplicates
 	uniquePerms := make(map[string]struct{})
 	for _, p := range userPermissions {
 		if p != "" {
@@ -84,7 +78,6 @@ func (m *PermissionMiddleware) fetchUserPermissions(app core.App, user *core.Rec
 		}
 	}
 
-	// Convert back to slice
 	permissionIDs := make([]string, 0, len(uniquePerms))
 	for p := range uniquePerms {
 		permissionIDs = append(permissionIDs, p)
@@ -101,7 +94,6 @@ func (m *PermissionMiddleware) fetchUserPermissions(app core.App, user *core.Rec
 		return []string{}
 	}
 
-	// Extract permission slugs
 	permissionSlugs := make([]string, 0, len(permissionsRecords))
 	for _, permission := range permissionsRecords {
 		slug := permission.GetString("slug")
@@ -158,21 +150,15 @@ func (m *PermissionMiddleware) HasPermission(userPermissions []string, permissio
 //	router.GET("/protected", authFunc, permFunc, handlerFunc)
 func (m *PermissionMiddleware) RequirePermission(permissions ...string) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
-		// If no permissions are required, allow the request
 		if len(permissions) == 0 {
 			return nil
 		}
 
-		// Extract the authenticated user from the request event
-		// The Auth field contains the authenticated user record
 		user := e.Auth
 
-		// Get user permissions from the user record and roles
 		userPermissions := m.getUserPermissions(e.App, user)
 
 		if user == nil {
-			// User not found - this should not happen if used after auth middleware
-			// but we handle it gracefully
 			return apis.NewForbiddenError("Authentication required", nil)
 		}
 
@@ -181,13 +167,10 @@ func (m *PermissionMiddleware) RequirePermission(permissions ...string) func(*co
 			return nil
 		}
 
-		// Check if the user has any of the required permissions
 		if m.HasPermission(userPermissions, permissions) {
-			// User has permission, allow the request to proceed
 			return nil
 		}
 
-		// User doesn't have the required permissions, return 403 Forbidden
 		return apis.NewForbiddenError("You don't have permission to access this resource", nil)
 	}
 }

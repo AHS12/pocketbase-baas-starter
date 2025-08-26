@@ -28,18 +28,15 @@ func CheckFileExists(path string) bool {
 
 // WriteMigrationFile writes the migration content to the specified file path
 func WriteMigrationFile(path, content string) error {
-	// Check if file already exists
 	if CheckFileExists(path) {
 		return fmt.Errorf("migration file already exists: %s (%w)", path, ErrFileExists)
 	}
 
-	// Ensure the directory exists
 	dir := filepath.Dir(path)
 	if err := EnsureDirectoryExists(dir); err != nil {
 		return err
 	}
 
-	// Write the file
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write migration file %s: %w", path, err)
 	}

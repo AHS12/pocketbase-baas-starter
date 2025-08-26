@@ -69,7 +69,6 @@ func GetLogger(app *pocketbase.PocketBase) Logger {
 			pbApp:     app,
 			storeLogs: true, // Default to storing logs in DB
 		}
-		// Automatically set the global logger
 		SetGlobalLogger(instance)
 	})
 	return instance
@@ -93,7 +92,6 @@ func FromAppOrDefault(app core.App) Logger {
 	if pbApp, ok := app.(*pocketbase.PocketBase); ok {
 		return GetLogger(pbApp)
 	}
-	// Return a no-op logger that only logs to stdout
 	return &noopLogger{}
 }
 
@@ -206,10 +204,7 @@ func (l *pbLogger) logWithLevel(level LogLevel, msg string, keysAndValues ...any
 
 // logWithLevel is a helper function that logs to stdout only (for noopLogger and fallback)
 func logWithLevel(level LogLevel, msg string, keysAndValues ...any) {
-	// Format the message with key-value pairs
 	formattedMsg := formatMessage(msg, keysAndValues...)
-
-	// Only log to stdout for fallback cases
 	log.Printf("[%s] %s", level.String(), formattedMsg)
 }
 

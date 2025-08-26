@@ -102,7 +102,6 @@ func (cs *CacheService) DeletePattern(pattern string) int {
 	items := cs.cache.Items()
 
 	for key := range items {
-		// Simple pattern matching - you can enhance this with regex if needed
 		if containsPattern(key, pattern) {
 			cs.cache.Delete(key)
 			deleted++
@@ -166,7 +165,6 @@ func (cs *CacheService) InvalidatePermissionCache() int {
 
 // Helper function for simple pattern matching
 func containsPattern(key, pattern string) bool {
-	// Simple contains check - you can enhance this with more sophisticated pattern matching
 	return len(pattern) > 0 && len(key) >= len(pattern) && key[:len(pattern)] == pattern
 }
 

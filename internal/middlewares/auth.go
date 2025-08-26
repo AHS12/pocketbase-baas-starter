@@ -20,7 +20,6 @@ type AuthMiddleware struct {
 	app core.App
 }
 
-// CollectionAuthInfo holds cached information about collection authentication requirements
 type CollectionAuthInfo struct {
 	ListRequiresAuth   bool
 	ViewRequiresAuth   bool
@@ -30,7 +29,6 @@ type CollectionAuthInfo struct {
 	LastChecked        time.Time
 }
 
-// NewAuthMiddleware creates a new instance of AuthMiddleware
 func NewAuthMiddleware() *AuthMiddleware {
 	return &AuthMiddleware{}
 }
@@ -75,11 +73,9 @@ func (m *AuthMiddleware) requiresAuthentication(rule *string) bool {
 
 // getCachedCollectionAuthInfo retrieves or computes collection authentication info with caching
 func (m *AuthMiddleware) getCachedCollectionAuthInfo(collectionName string) (*CollectionAuthInfo, error) {
-	// Get cache instance
 	cacheService := cache.GetInstance()
 	cacheKey := fmt.Sprintf("collection_auth_info_%s", collectionName)
 
-	// Try to get from cache first
 	if cachedData, found := cacheService.Get(cacheKey); found {
 		if authInfo, ok := cachedData.(*CollectionAuthInfo); ok {
 			// Check if cache is still valid (within 1 minute)
@@ -89,13 +85,11 @@ func (m *AuthMiddleware) getCachedCollectionAuthInfo(collectionName string) (*Co
 		}
 	}
 
-	// Cache miss or expired - fetch collection data
 	collection, err := m.app.FindCollectionByNameOrId(collectionName)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create new auth info
 	authInfo := &CollectionAuthInfo{
 		ListRequiresAuth:   m.requiresAuthentication(collection.ListRule),
 		ViewRequiresAuth:   m.requiresAuthentication(collection.ViewRule),
@@ -105,7 +99,6 @@ func (m *AuthMiddleware) getCachedCollectionAuthInfo(collectionName string) (*Co
 		LastChecked:        time.Now(),
 	}
 
-	// Cache for 1 minute
 	cacheService.SetWithExpiration(cacheKey, authInfo, 1*time.Minute)
 
 	return authInfo, nil
@@ -174,7 +167,6 @@ func (m *AuthMiddleware) getOperationFromPath(path, method string) (collectionNa
 // RequireAuthWithExclusionsFunc returns a middleware function that requires authentication
 // but respects excluded paths and checks collection rules based on the operation type
 func (m *AuthMiddleware) RequireAuthWithExclusionsFunc(e *core.RequestEvent) error {
-	// If we don't have access to the app, skip auth checks
 	if m.app == nil {
 		return e.Next()
 	}
@@ -182,27 +174,23 @@ func (m *AuthMiddleware) RequireAuthWithExclusionsFunc(e *core.RequestEvent) err
 	path := e.Request.URL.Path
 	method := e.Request.Method
 
-	// Check if path should be excluded
 	for _, excludedPath := range common.ExcludedPaths {
 		if strings.HasPrefix(path, excludedPath) {
 			return e.Next() // Skip auth for excluded paths
 		}
 	}
 
-	// Determine operation type
 	collectionName, operation, ok := m.getOperationFromPath(path, method)
 	if !ok {
 		return e.Next()
 	}
 
-	// Get cached collection authentication info
 	authInfo, err := m.getCachedCollectionAuthInfo(collectionName)
 	if err != nil {
 		// Collection not found or error, let PocketBase handle the error
 		return e.Next()
 	}
 
-	// Check if the specific operation requires authentication based on the cached info
 	requiresAuth := false
 
 	switch operation {
@@ -225,7 +213,6 @@ func (m *AuthMiddleware) RequireAuthWithExclusionsFunc(e *core.RequestEvent) err
 			authInfo.DeleteRequiresAuth
 	}
 
-	// If the operation requires authentication, enforce it
 	if requiresAuth {
 		authFunc := m.RequireAuthFunc()
 		if err := authFunc(e); err != nil {

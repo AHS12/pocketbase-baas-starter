@@ -29,7 +29,6 @@ func GetJobManager() *JobManager {
 	return globalJobManager
 }
 
-// Initialize sets up the job processor
 // This should be called once during application startup
 func (jm *JobManager) Initialize(app *pocketbase.PocketBase) error {
 	jm.mu.Lock()
@@ -41,7 +40,6 @@ func (jm *JobManager) Initialize(app *pocketbase.PocketBase) error {
 
 	log.Info("Initializing job manager and processors")
 
-	// Create the job processor
 	jm.processor = jobutils.NewJobProcessor(app)
 
 	jm.initialized = true
@@ -51,7 +49,6 @@ func (jm *JobManager) Initialize(app *pocketbase.PocketBase) error {
 }
 
 // GetProcessor returns the initialized job processor
-// Returns nil if not initialized
 func (jm *JobManager) GetProcessor() *jobutils.JobProcessor {
 	jm.mu.RLock()
 	defer jm.mu.RUnlock()

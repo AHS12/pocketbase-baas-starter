@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"ims-pocketbase-baas-starter/internal/handlers/route"
 	"ims-pocketbase-baas-starter/internal/middlewares"
 	"ims-pocketbase-baas-starter/pkg/permission"
@@ -20,7 +21,11 @@ type Route struct {
 
 // RegisterCustom registers all custom routes with the PocketBase application
 // This function follows the same pattern as RegisterCrons and RegisterJobs
-func RegisterCustom(e *core.ServeEvent) {
+func RegisterCustom(e *core.ServeEvent) error {
+	if e == nil {
+		return fmt.Errorf("RegisterCustom: serve event cannot be nil")
+	}
+
 	authMiddleware := middlewares.NewAuthMiddleware()
 	permissionMiddleware := middlewares.NewPermissionMiddleware()
 
@@ -117,4 +122,6 @@ func RegisterCustom(e *core.ServeEvent) {
 			continue
 		}
 	}
+
+	return nil
 }

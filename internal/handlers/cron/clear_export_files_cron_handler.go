@@ -17,10 +17,8 @@ func HandleClearExportFiles(app *pocketbase.PocketBase) {
 	ctx := cronutils.NewCronExecutionContext(app, "clear_export_files")
 	ctx.LogStart("Starting export files cleanup operations")
 
-	// Get configuration for cleanup batch size
 	batchSize := common.GetEnvInt("EXPORT_CLEANUP_BATCH_SIZE", 100) // Process up to 100 expired files per run
 
-	// Find expired export files
 	expiredRecords, err := findExpiredExportFiles(app, batchSize)
 	if err != nil {
 		ctx.LogError(err, "Failed to find expired export files")
@@ -32,7 +30,6 @@ func HandleClearExportFiles(app *pocketbase.PocketBase) {
 		return
 	}
 
-	// Clean up each expired record
 	deletedCount := 0
 	errorCount := 0
 
@@ -66,7 +63,6 @@ func findExpiredExportFiles(app *pocketbase.PocketBase, batchSize int) ([]*core.
 		return nil, fmt.Errorf("export_files collection not found: %w", err)
 	}
 
-	// Query for records where expires_at is less than current time
 	now := time.Now()
 	filter := fmt.Sprintf("expires_at <= '%s'", now.Format(time.RFC3339))
 
@@ -94,7 +90,6 @@ func deleteExportFileRecord(ctx *cronutils.CronExecutionContext, app *pocketbase
 	ctx.LogDebug(fmt.Sprintf("Deleting expired export file: record_id=%s, job_id=%s, filename=%s, expired_at=%s",
 		recordId, jobId, filename, expiresAt.Format(time.RFC3339)), "Processing expired file")
 
-	// Delete the record (this will automatically delete the associated file)
 	if err := app.Delete(record); err != nil {
 		return fmt.Errorf("failed to delete export file record %s: %w", recordId, err)
 	}

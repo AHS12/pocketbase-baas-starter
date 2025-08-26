@@ -17,40 +17,33 @@ const (
 )
 
 var (
-	cacheTTL   = 5 * time.Minute // Default cache TTL
-	generating sync.Mutex        // Prevents multiple simultaneous generations
+	cacheTTL   = 5 * time.Minute
+	generating sync.Mutex
 )
 
 // GenerateSpecWithCache generates OpenAPI spec with centralized caching and automatic invalidation
 func GenerateSpecWithCache(generator *Generator) (*CombinedOpenAPISpec, error) {
-	// Check cache first
 	if spec := getCachedSpec(); spec != nil {
-		// Check if collections have changed
 		if !hasCollectionsChanged(generator) {
 			return spec, nil
 		}
-		// Collections changed, invalidate cache
 		InvalidateCache()
 	}
 
-	// Prevent multiple simultaneous generations
 	generating.Lock()
 	defer generating.Unlock()
 
-	// Double-check cache after acquiring lock
 	if spec := getCachedSpec(); spec != nil {
 		if !hasCollectionsChanged(generator) {
 			return spec, nil
 		}
 	}
 
-	// Generate new spec
 	spec, err := generator.GenerateSpec()
 	if err != nil {
 		return nil, err
 	}
 
-	// Cache the spec
 	cache.GetInstance().SetWithExpiration(SwaggerSpecKey, spec, cacheTTL)
 	updateCollectionsHash(generator)
 
@@ -94,12 +87,11 @@ func hasCollectionsChanged(generator *Generator) bool {
 	currentHash, err := generateCollectionsHash(generator)
 	if err != nil {
 		log.Warn("Failed to generate collections hash", "error", err)
-		return true // Assume changed to be safe
+		return true
 	}
 
 	cachedHash, found := cache.GetInstance().GetString(SwaggerCollectionsHash)
 
-	// If we don't have a previous hash, consider it changed
 	if !found || cachedHash == "" {
 		return true
 	}
@@ -114,7 +106,6 @@ func generateCollectionsHash(generator *Generator) (string, error) {
 		return "", fmt.Errorf("failed to discover collections for hashing: %w", err)
 	}
 
-	// Use the full CollectionInfo structs for hashing
 	jsonData, err := json.Marshal(collections)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal collections for hashing: %w", err)

@@ -25,7 +25,6 @@ type JobProcessor struct {
 type JobHandler interface {
 	// Handle processes a job with the given payload and returns an error if processing fails
 	Handle(ctx *cronutils.CronExecutionContext, job *JobData) error
-
 	// GetJobType returns the job type this handler processes
 	GetJobType() string
 }

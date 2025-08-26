@@ -24,57 +24,49 @@ import (
 )
 
 // NewApp creates and configures a new PocketBase app instance
-// This is useful for testing and for the main application
 func NewApp() *pocketbase.PocketBase {
 	app := pocketbase.New()
 
-	// v0.29: register the official migratecmd plugin
 	isGoRun := strings.HasPrefix(os.Args[0], os.TempDir())
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
 		Automigrate:  isGoRun, // auto-create migration files only in dev
 		TemplateLang: migratecmd.TemplateLangGo,
 	})
 
-	// Initialize metrics provider early in startup sequence
-	// This must be called before hooks and middleware registration
-	metricsProvider := metrics.GetInstance()
-
-	// Initialize our logger
 	logger := logger.GetLogger(app)
 	logger.SetStoreLogs(true) // Enable storing logs in DB
 
+	metricsProvider := metrics.GetInstance()
 	logger.Info("Metrics provider initialized", "provider", metricsProvider != nil)
 
-	// Initialize job manager during app startup
-	// This must be called after app creation but before OnServe setup
 	jobManager := jobs.GetJobManager()
-	if err := jobManager.Initialize(app); err != nil {
-		log.Fatalf("Failed to initialize job manager: %v", err)
+	// Only initialize if not already initialized
+	if jobManager.GetProcessor() == nil {
+		if err := jobManager.Initialize(app); err != nil {
+			log.Fatalf("Failed to initialize job manager: %v", err)
+		}
 	}
 
-	// Register job handlers during app initialization phase
-	// This must be called after job manager initialization
 	logger.Info("Registering job handlers")
 	if err := jobs.RegisterJobs(app); err != nil {
 		log.Fatalf("Failed to register job handlers: %v", err)
 	}
 
-	// Register scheduled cron jobs during app initialization phase
-	// This must be called after job manager initialization
 	logger.Info("Registering scheduled cron jobs")
-	crons.RegisterCrons(app)
+	if err := crons.RegisterCrons(app); err != nil {
+		log.Fatalf("Failed to register schedule crons: %v", err)
+	}
 
-	// Register custom console commands
-	// This must be called after app creation but before OnServe setup
 	logger.Info("Registering custom console commands")
-	commands.RegisterCommands(app)
+	if err := commands.RegisterCommands(app); err != nil {
+		log.Fatalf("Failed to register commands: %v", err)
+	}
 
-	// Register custom event hooks
-	// This should be called after job manager and crons initialization
 	logger.Info("Registering custom event hooks")
-	hooks.RegisterHooks(app)
+	if err := hooks.RegisterHooks(app); err != nil {
+		log.Fatalf("Failed to register hooks: %v", err)
+	}
 
-	// Register shutdown hook for metrics provider cleanup
 	app.OnTerminate().BindFunc(func(te *core.TerminateEvent) error {
 		if metricsProvider != nil {
 			logger.Info("Shutting down metrics provider")
@@ -86,8 +78,6 @@ func NewApp() *pocketbase.PocketBase {
 	})
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		// Register Prometheus metrics endpoint if provider supports it
-		metricsProvider := metrics.GetInstance()
 		if handler := metricsProvider.GetHandler(); handler != nil {
 			se.Router.GET("/metrics", func(e *core.RequestEvent) error {
 				handler.ServeHTTP(e.Response, e.Request)
@@ -96,20 +86,19 @@ func NewApp() *pocketbase.PocketBase {
 			logger.Info("Metrics endpoint registered", "path", "/metrics")
 		}
 
-		// Initialize API docs generator using singleton pattern
 		generator := apidoc.InitializeGenerator(app)
 
-		// Register all application middlewares
 		logger.Info("Registering middlewares")
-		middlewares.RegisterMiddlewares(se)
+		if err := middlewares.RegisterMiddlewares(se); err != nil {
+			log.Fatalf("Failed to register middlewares: %v", err)
+		}
 
-		// static files
 		se.Router.GET("/{path...}", apis.Static(os.DirFS("./pb_public"), false))
 
-		// custom business routes
-		routes.RegisterCustom(se)
+		if err := routes.RegisterCustom(se); err != nil {
+			log.Fatalf("Failed to register routes: %v", err)
+		}
 
-		// Register API docs endpoints
 		apidoc.RegisterEndpoints(se, generator)
 
 		return se.Next()

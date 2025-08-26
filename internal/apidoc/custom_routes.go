@@ -1,8 +1,6 @@
 package apidoc
 
 // GetCustomRoutes returns all predefined custom routes
-// These routes are automatically registered when creating a new generator
-// through the DefaultConfig function
 func GetCustomRoutes() []CustomRoute {
 	return defineCustomRoutes()
 }
@@ -10,7 +8,6 @@ func GetCustomRoutes() []CustomRoute {
 // defineCustomRoutes defines all custom routes for the application
 func defineCustomRoutes() []CustomRoute {
 	return []CustomRoute{
-		// System routes
 		{
 			Method:      "GET",
 			Path:        "/api/health",
@@ -35,8 +32,6 @@ func defineCustomRoutes() []CustomRoute {
 			Tags:        []string{"System"},
 			Protected:   true,
 		},
-
-		// User management routes
 		{
 			Method:      "POST",
 			Path:        "/api/v1/users/export",
@@ -45,8 +40,6 @@ func defineCustomRoutes() []CustomRoute {
 			Tags:        []string{"Users"},
 			Protected:   true,
 		},
-
-		// Job management routes
 		{
 			Method:      "GET",
 			Path:        "/api/v1/jobs/{id}/status",

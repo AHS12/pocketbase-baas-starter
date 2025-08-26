@@ -16,17 +16,13 @@ func InstrumentHook(provider MetricsProvider, hookType string, fn func() error) 
 		LabelHookType: hookType,
 	}
 
-	// Start timing
 	timer := SafeStartTimer(provider, MetricHookExecutionDuration, labels)
 	defer SafeStopTimer(timer)
 
-	// Increment total counter
 	SafeIncrementCounter(provider, MetricHookExecutionTotal, labels)
 
-	// Execute the function
 	err := SafeExecute(fn)
 
-	// Record success/failure
 	statusLabels := make(map[string]string)
 	for k, v := range labels {
 		statusLabels[k] = v
@@ -52,17 +48,13 @@ func InstrumentJobHandler(provider MetricsProvider, jobType string, fn func() er
 		LabelJobType: jobType,
 	}
 
-	// Start timing
 	timer := SafeStartTimer(provider, MetricJobExecutionDuration, labels)
 	defer SafeStopTimer(timer)
 
-	// Increment total counter
 	SafeIncrementCounter(provider, MetricJobExecutionTotal, labels)
 
-	// Execute the function
 	err := SafeExecute(fn)
 
-	// Record success/failure
 	statusLabels := make(map[string]string)
 	for k, v := range labels {
 		statusLabels[k] = v
@@ -89,17 +81,13 @@ func InstrumentHTTPHandler(provider MetricsProvider, method, path string, fn fun
 		LabelPath:   path,
 	}
 
-	// Start timing
 	timer := SafeStartTimer(provider, MetricHTTPRequestDuration, labels)
 	defer SafeStopTimer(timer)
 
-	// Increment total counter
 	SafeIncrementCounter(provider, MetricHTTPRequestsTotal, labels)
 
-	// Execute the function
 	err := SafeExecute(fn)
 
-	// Record success/failure with status code
 	statusLabels := make(map[string]string)
 	for k, v := range labels {
 		statusLabels[k] = v
@@ -127,17 +115,13 @@ func InstrumentRecordOperation(provider MetricsProvider, collection, operation s
 		LabelOperation:  operation,
 	}
 
-	// Start timing
 	timer := SafeStartTimer(provider, MetricHookExecutionDuration, labels)
 	defer SafeStopTimer(timer)
 
-	// Increment total counter
 	SafeIncrementCounter(provider, MetricRecordOperationsTotal, labels)
 
-	// Execute the function
 	err := SafeExecute(fn)
 
-	// Record success/failure
 	statusLabels := make(map[string]string)
 	for k, v := range labels {
 		statusLabels[k] = v
@@ -157,14 +141,11 @@ func InstrumentEmailOperation(provider MetricsProvider, fn func() error) error {
 		return fn()
 	}
 
-	// Start timing
 	timer := SafeStartTimer(provider, MetricHookExecutionDuration, nil)
 	defer SafeStopTimer(timer)
 
-	// Execute the function
 	err := SafeExecute(fn)
 
-	// Record email metrics
 	if err != nil {
 		// Don't increment success counter on error
 	} else {
@@ -203,7 +184,6 @@ func SafeIncrementCounter(provider MetricsProvider, name string, labels map[stri
 	defer func() {
 		if r := recover(); r != nil {
 			// Log panic but don't propagate it
-			// In production, you might want to use a proper logger here
 			_ = r // Acknowledge the recovered panic
 		}
 	}()
@@ -313,7 +293,6 @@ func MeasureExecutionTime(provider MetricsProvider, metricName string, labels ma
 }
 
 // WithMetrics is a helper function that provides a metrics provider to a function
-// This is useful for dependency injection patterns
 func WithMetrics(provider MetricsProvider, fn func(MetricsProvider) error) error {
 	if provider == nil {
 		provider = NewNoOpProvider()

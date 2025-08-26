@@ -57,17 +57,10 @@ func ValidateMigrationName(name string) error {
 
 // SanitizeMigrationName converts migration name to snake_case
 func SanitizeMigrationName(name string) string {
-	// Convert to lowercase
 	name = strings.ToLower(name)
-
-	// Replace hyphens with underscores (normalize to snake_case)
 	name = strings.ReplaceAll(name, "-", "_")
-
-	// Replace multiple consecutive underscores with single underscore
 	multiUnderscore := regexp.MustCompile(`_+`)
 	name = multiUnderscore.ReplaceAllString(name, "_")
-
-	// Remove leading/trailing underscores
 	name = strings.Trim(name, "_")
 
 	return name
