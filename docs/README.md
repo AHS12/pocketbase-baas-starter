@@ -187,6 +187,16 @@ Guide for setting up Git hooks for code quality and automation:
 - Automated code quality checks
 - Integration with development workflow
 
+### [Database Seeders Guide](seeders.md)
+
+Complete guide for creating and managing database seeders:
+
+- CLI seeder architecture and registration
+- Creating custom seeder functions
+- Running individual and batch seeders
+- Best practices for data generation
+- Integration with the factory system
+
 ## Advanced Topics
 
 ### [Dependency Injection Guide](dependency-injection.md)

@@ -43,6 +43,30 @@ func RegisterCommands(app *pocketbase.PocketBase) error {
 			Handler: command.HandleSyncPermissionsCommand,
 			Enabled: true,
 		},
+		{
+			ID:      "db-seed",
+			Use:     "db-seed",
+			Short:   "Run all registered CLI seeders",
+			Long:    "Executes all CLI seeders that have been registered in the seeder registry",
+			Handler: command.HandleDBSeedCommand,
+			Enabled: true,
+		},
+		{
+			ID:      "seed-users",
+			Use:     "seed-users [count]",
+			Short:   "Seed fake users for testing",
+			Long:    "Creates a specified number of fake users (default 10) for development and testing purposes",
+			Handler: command.HandleSeedUsersCommand,
+			Enabled: true,
+		},
+		{
+			ID:      "seed-users-with-role",
+			Use:     "seed-users-with-role <count> <role-name>",
+			Short:   "Seed fake users with a specific role",
+			Long:    "Creates a specified number of fake users and assigns them to a specific role for testing",
+			Handler: command.HandleSeedUsersWithRoleCommand,
+			Enabled: true,
+		},
 		// Add more commands here as needed:
 		// {
 		//     ID:      "example",

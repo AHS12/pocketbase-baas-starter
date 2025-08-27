@@ -11,14 +11,15 @@ A production-ready Backend-as-a-Service (BaaS) starter kit that extends PocketBa
 - 🪝 **Event Hooks System** - Comprehensive event hook management with organized handlers for records, collections, requests, mailer, and realtime events
 - ⚡ **Go Cache with TTL** - High-performance in-memory caching with Time-To-Live support for improved application performance
 - ⏰ **Cron Jobs & Job Queue** - Scheduled tasks and dynamic job processing with concurrent workers
+- 📊 **Future-Proof Migrations** - Automated database setup, seeding, and schema evolution
 - 💻 **CLI Command Support** - Command-line interface support for custom scripts and tasks
 - 📈 **Metrics & Observability** - Comprehensive monitoring with Prometheus metrics and OpenTelemetry support for performance tracking and system insights
 - 📧 **Email Integration** - SMTP configuration with MailHog for development
-- 📚 **Auto API Documentation** - Interactive auto generated API Docs: Scalar, Swagger UI, ReDoc, OpenAPI JSON with Postman compatibility
+- 📚 **Auto API Documentation** - Interactive auto generated API Docs: Scalar, Swagger UI, ReDoc, OpenAPI JSON with Postman and Bruno compatibility
+- 🌱 **Database Seeders** - CLI-based database seeding system for test data and development
 - 🐳 **Docker Support** - Production and development environments
 - 🔄 **Hot Reload** - Development environment with automatic code reloading
 - ⚙️ **Environment Configuration** - Flexible configuration via environment variables
-- 📊 **Future-Proof Migrations** - Automated database setup, seeding, and schema evolution
 
 ## Quick Start
 
@@ -132,6 +133,7 @@ For a complete list of commands and usage examples, see the [Makefile Commands G
 - **Caching** - High-performance TTL cache system. See [Caching Guide](docs/caching.md)
 - **Metrics & Observability** - Prometheus metrics and OpenTelemetry support. See [Metrics Guide](docs/metrics.md)
 - **CLI Commands** - Command-line interface for administrative tasks including permission sync and health checks. See [CLI Commands Guide](docs/cli-commands.md)
+- **Database Seeders** - CLI-based database seeding for test data and development. See [Seeders Guide](docs/seeders.md)
 - **Migration CLI** - Generate migrations with `make migrate-gen name=your_migration`
 
 ## Project Structure
