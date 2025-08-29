@@ -66,10 +66,8 @@ func TestGetEnv(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up environment variable before test
 			os.Unsetenv(tt.envKey)
 
-			// Set environment variable if needed
 			if tt.setEnv && tt.envValue != "" {
 				os.Setenv(tt.envKey, tt.envValue)
 				defer os.Unsetenv(tt.envKey) // Clean up after test
@@ -146,10 +144,8 @@ func TestGetEnvInt(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up environment variable before test
 			os.Unsetenv(tt.envKey)
 
-			// Set environment variable if needed
 			if tt.setEnv && tt.envValue != "" {
 				os.Setenv(tt.envKey, tt.envValue)
 				defer os.Unsetenv(tt.envKey) // Clean up after test
@@ -281,10 +277,8 @@ func TestGetEnvBool(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up environment variable before test
 			os.Unsetenv(tt.envKey)
 
-			// Set environment variable if needed
 			if tt.setEnv && tt.envValue != "" {
 				os.Setenv(tt.envKey, tt.envValue)
 				defer os.Unsetenv(tt.envKey) // Clean up after test

@@ -1,7 +1,10 @@
 package cronutils
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/pocketbase/pocketbase"
 )
 
 func TestValidateCronExpression(t *testing.T) {
@@ -45,4 +48,72 @@ func TestValidateCronExpression(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewCronExecutionContext(t *testing.T) {
+	app := pocketbase.New()
+	cronID := "test-cron-123"
+
+	ctx := NewCronExecutionContext(app, cronID)
+
+	if ctx == nil {
+		t.Fatal("NewCronExecutionContext should not return nil")
+	}
+
+	if ctx.App != app {
+		t.Error("Expected context to have correct app reference")
+	}
+
+	if ctx.CronID != cronID {
+		t.Errorf("Expected CronID %q, got %q", cronID, ctx.CronID)
+	}
+
+	if ctx.StartTime.IsZero() {
+		t.Error("Expected StartTime to be set")
+	}
+}
+
+func TestCronExecutionContext_LogMethods(t *testing.T) {
+	app := pocketbase.New()
+	ctx := NewCronExecutionContext(app, "test-cron")
+
+	ctx.LogStart("Starting test operation")
+	ctx.LogEnd("Test operation completed")
+	ctx.LogError(fmt.Errorf("test error"), "Test error occurred")
+	ctx.LogDebug(map[string]string{"key": "value"}, "Debug information")
+
+	if ctx.CronID != "test-cron" {
+		t.Errorf("Expected CronID to remain 'test-cron', got %q", ctx.CronID)
+	}
+}
+
+func TestWithRecovery(t *testing.T) {
+	app := pocketbase.New()
+	cronID := "test-recovery"
+
+	executed := false
+	normalFunc := func() {
+		executed = true
+	}
+
+	wrappedFunc := WithRecovery(app, cronID, normalFunc)
+	wrappedFunc()
+
+	if !executed {
+		t.Error("Expected wrapped function to execute normally")
+	}
+
+	panicFunc := func() {
+		panic("test panic")
+	}
+
+	wrappedPanicFunc := WithRecovery(app, cronID, panicFunc)
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Expected panic to be recovered, but got panic: %v", r)
+		}
+	}()
+
+	wrappedPanicFunc()
 }

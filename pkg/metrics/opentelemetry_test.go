@@ -54,22 +54,17 @@ func TestOpenTelemetryProviderCounters(t *testing.T) {
 		"status": "200",
 	}
 
-	// Test IncrementCounter
 	provider.IncrementCounter("http_requests_total", labels)
 	provider.IncrementCounter("http_requests_total", labels)
 
-	// Test IncrementCounterBy
 	provider.IncrementCounterBy("http_requests_total", 5.0, labels)
 
-	// Verify metrics are created
 	if len(provider.counters) != 1 {
 		t.Errorf("Expected 1 counter, got %d", len(provider.counters))
 	}
 
-	// Test with nil labels
 	provider.IncrementCounter("test_counter", nil)
 
-	// Test with empty labels
 	provider.IncrementCounter("test_counter", map[string]string{})
 }
 
@@ -82,14 +77,11 @@ func TestOpenTelemetryProviderHistograms(t *testing.T) {
 		"handler": "api",
 	}
 
-	// Test RecordHistogram
 	provider.RecordHistogram("request_duration_seconds", 0.25, labels)
 	provider.RecordHistogram("request_duration_seconds", 1.5, labels)
 
-	// Test RecordDuration
 	provider.RecordDuration("processing_time", 500*time.Millisecond, labels)
 
-	// Verify metrics are created
 	if len(provider.histograms) != 2 {
 		t.Errorf("Expected 2 histograms, got %d", len(provider.histograms))
 	}
@@ -104,17 +96,14 @@ func TestOpenTelemetryProviderGauges(t *testing.T) {
 		"queue": "default",
 	}
 
-	// Test SetGauge
 	provider.SetGauge("queue_size", 10.0, labels)
 	provider.SetGauge("queue_size", 15.0, labels) // Update same gauge
 	provider.SetGauge("active_connections", 5.0, nil)
 
-	// Verify gauge values are stored
 	if len(provider.gaugeValues) == 0 {
 		t.Error("Expected gauge values to be stored")
 	}
 
-	// Verify gauges are created
 	if len(provider.gauges) == 0 {
 		t.Error("Expected gauges to be created")
 	}
@@ -129,31 +118,25 @@ func TestOpenTelemetryTimer(t *testing.T) {
 		"operation": "test",
 	}
 
-	// Test StartTimer and Stop
 	timer := provider.StartTimer("operation_duration_seconds", labels)
 	if timer == nil {
 		t.Fatal("StartTimer() returned nil")
 	}
 
-	// Verify it implements Timer interface
 	var _ Timer = timer
 
-	// Simulate some work
 	time.Sleep(10 * time.Millisecond)
 	timer.Stop()
 
-	// Test StopWithLabels
 	timer2 := provider.StartTimer("operation_duration_seconds", labels)
 	time.Sleep(5 * time.Millisecond)
 	timer2.StopWithLabels(map[string]string{
 		"result": "success",
 	})
 
-	// Test with nil additional labels
 	timer3 := provider.StartTimer("operation_duration_seconds", labels)
 	timer3.StopWithLabels(nil)
 
-	// Verify histogram was created
 	if len(provider.histograms) != 1 {
 		t.Errorf("Expected 1 histogram, got %d", len(provider.histograms))
 	}
@@ -190,20 +173,16 @@ func TestOpenTelemetryProviderShutdown(t *testing.T) {
 		Namespace: "test",
 	})
 
-	// Add some metrics
 	provider.IncrementCounter("test_counter", nil)
 	provider.SetGauge("test_gauge", 1.0, nil)
 
-	// Test shutdown
 	ctx := context.Background()
 	err := provider.Shutdown(ctx)
 
-	// Should not return error (even if meterProvider is nil)
 	if err != nil {
 		t.Errorf("Shutdown() returned error: %v", err)
 	}
 
-	// Test shutdown with timeout context
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -277,17 +256,14 @@ func TestOpenTelemetryProviderGlobalLabels(t *testing.T) {
 	}
 	provider := NewOpenTelemetryProvider(config)
 
-	// Add metric with local labels
 	localLabels := map[string]string{
 		"method": "GET",
 	}
 
 	provider.IncrementCounter("requests_total", localLabels)
 
-	// Verify global labels are included in conversion
 	attrs := provider.convertLabels(localLabels)
 
-	// Should have both global and local labels
 	expectedLabels := 3 // env, service, method
 	if len(attrs) != expectedLabels {
 		t.Errorf("Expected %d attributes, got %d", expectedLabels, len(attrs))
@@ -368,7 +344,6 @@ func TestOpenTelemetryProviderConvertLabels(t *testing.T) {
 		t.Errorf("Expected %d attributes, got %d", expectedCount, len(attrs))
 	}
 
-	// Verify specific attributes exist
 	attrMap := make(map[string]string)
 	for _, attr := range attrs {
 		attrMap[string(attr.Key)] = attr.Value.AsString()
@@ -383,7 +358,6 @@ func TestOpenTelemetryProviderConvertLabels(t *testing.T) {
 }
 
 func TestOpenTelemetryProviderFailedExporter(t *testing.T) {
-	// Test with invalid endpoint to simulate exporter creation failure
 	config := Config{
 		Namespace: "test",
 		OpenTelemetry: OpenTelemetryConfig{
@@ -398,7 +372,6 @@ func TestOpenTelemetryProviderFailedExporter(t *testing.T) {
 		t.Fatal("NewOpenTelemetryProvider() should not return nil even with invalid config")
 	}
 
-	// Should still be able to use metrics (they just won't be exported)
 	provider.IncrementCounter("test", nil)
 	provider.RecordHistogram("test", 1.0, nil)
 	provider.SetGauge("test", 1.0, nil)

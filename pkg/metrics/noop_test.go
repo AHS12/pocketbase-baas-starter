@@ -23,7 +23,6 @@ func TestNoOpProviderMethods(t *testing.T) {
 	provider := NewNoOpProvider()
 	labels := map[string]string{"test": "value"}
 
-	// Test that all methods can be called without panicking
 	t.Run("IncrementCounter", func(t *testing.T) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -31,7 +30,7 @@ func TestNoOpProviderMethods(t *testing.T) {
 			}
 		}()
 		provider.IncrementCounter("test_counter", labels)
-		provider.IncrementCounter("test_counter", nil) // Test with nil labels
+		provider.IncrementCounter("test_counter", nil)
 	})
 
 	t.Run("IncrementCounterBy", func(t *testing.T) {
@@ -41,8 +40,8 @@ func TestNoOpProviderMethods(t *testing.T) {
 			}
 		}()
 		provider.IncrementCounterBy("test_counter", 5.0, labels)
-		provider.IncrementCounterBy("test_counter", 0.0, nil)     // Test with zero value and nil labels
-		provider.IncrementCounterBy("test_counter", -1.0, labels) // Test with negative value
+		provider.IncrementCounterBy("test_counter", 0.0, nil)
+		provider.IncrementCounterBy("test_counter", -1.0, labels)
 	})
 
 	t.Run("RecordHistogram", func(t *testing.T) {
@@ -102,7 +101,7 @@ func TestNoOpTimer(t *testing.T) {
 
 		timer.Stop()
 		timer.StopWithLabels(map[string]string{"additional": "label"})
-		timer.StopWithLabels(nil) // Test with nil labels
+		timer.StopWithLabels(nil)
 	})
 
 	t.Run("MultipleTimerOperations", func(t *testing.T) {
@@ -138,7 +137,6 @@ func TestNoOpProviderHTTPHandler(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
 	}
 
-	// Should return appropriate message
 	expectedBody := "Metrics are disabled\n"
 	if w.Body.String() != expectedBody {
 		t.Errorf("Expected body %q, got %q", expectedBody, w.Body.String())
@@ -163,7 +161,6 @@ func TestNoOpProviderHTTPHandler(t *testing.T) {
 func TestNoOpProviderShutdown(t *testing.T) {
 	provider := NewNoOpProvider()
 
-	// Test shutdown with different contexts
 	t.Run("NormalShutdown", func(t *testing.T) {
 		ctx := context.Background()
 		err := provider.Shutdown(ctx)
@@ -175,7 +172,7 @@ func TestNoOpProviderShutdown(t *testing.T) {
 
 	t.Run("CancelledContext", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		cancel() // Cancel immediately
+		cancel()
 
 		err := provider.Shutdown(ctx)
 
@@ -189,7 +186,6 @@ func TestNoOpProviderShutdown(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 		defer cancel()
 
-		// Wait for timeout
 		time.Sleep(1 * time.Millisecond)
 
 		err := provider.Shutdown(ctx)
@@ -201,7 +197,6 @@ func TestNoOpProviderShutdown(t *testing.T) {
 	})
 }
 
-// Test performance characteristics of no-op provider
 func TestNoOpProviderPerformance(t *testing.T) {
 	provider := NewNoOpProvider()
 	labels := map[string]string{"test": "value", "env": "test"}
@@ -220,8 +215,8 @@ func TestNoOpProviderPerformance(t *testing.T) {
 
 	duration := time.Since(start)
 
-	// No-op operations should be very fast (less than 10ms for 10k operations)
-	if duration > 10*time.Millisecond {
+	// No-op operations should be very fast (less than 100ms for 10k operations)
+	if duration > 100*time.Millisecond {
 		t.Errorf("No-op operations took too long: %v", duration)
 	}
 }

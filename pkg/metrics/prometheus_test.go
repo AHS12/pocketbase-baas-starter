@@ -52,22 +52,17 @@ func TestPrometheusProviderCounters(t *testing.T) {
 		"status": "200",
 	}
 
-	// Test IncrementCounter
 	provider.IncrementCounter("http_requests_total", labels)
 	provider.IncrementCounter("http_requests_total", labels)
 
-	// Test IncrementCounterBy
 	provider.IncrementCounterBy("http_requests_total", 5.0, labels)
 
-	// Verify metrics are created
 	if len(provider.counters) != 1 {
 		t.Errorf("Expected 1 counter, got %d", len(provider.counters))
 	}
 
-	// Test with nil labels
 	provider.IncrementCounter("test_counter", nil)
 
-	// Test with empty labels
 	provider.IncrementCounter("test_counter", map[string]string{})
 }
 
@@ -84,14 +79,11 @@ func TestPrometheusProviderHistograms(t *testing.T) {
 		"handler": "api",
 	}
 
-	// Test RecordHistogram
 	provider.RecordHistogram("request_duration_seconds", 0.25, labels)
 	provider.RecordHistogram("request_duration_seconds", 1.5, labels)
 
-	// Test RecordDuration
 	provider.RecordDuration("processing_time", 500*time.Millisecond, labels)
 
-	// Verify metrics are created
 	if len(provider.histograms) != 2 {
 		t.Errorf("Expected 2 histograms, got %d", len(provider.histograms))
 	}
@@ -106,12 +98,10 @@ func TestPrometheusProviderGauges(t *testing.T) {
 		"queue": "default",
 	}
 
-	// Test SetGauge
 	provider.SetGauge("queue_size", 10.0, labels)
 	provider.SetGauge("queue_size", 15.0, labels) // Update same gauge
 	provider.SetGauge("active_connections", 5.0, nil)
 
-	// Verify metrics are created
 	if len(provider.gauges) != 2 {
 		t.Errorf("Expected 2 gauges, got %d", len(provider.gauges))
 	}
@@ -129,31 +119,25 @@ func TestPrometheusTimer(t *testing.T) {
 		"operation": "test",
 	}
 
-	// Test StartTimer and Stop
 	timer := provider.StartTimer("operation_duration_seconds", labels)
 	if timer == nil {
 		t.Fatal("StartTimer() returned nil")
 	}
 
-	// Verify it implements Timer interface
 	var _ Timer = timer
 
-	// Simulate some work
 	time.Sleep(10 * time.Millisecond)
 	timer.Stop()
 
-	// Test StopWithLabels (additional labels are ignored in Prometheus)
 	timer2 := provider.StartTimer("operation_duration_seconds", labels)
 	time.Sleep(5 * time.Millisecond)
 	timer2.StopWithLabels(map[string]string{
 		"result": "success", // This will be ignored due to Prometheus limitations
 	})
 
-	// Test with nil additional labels
 	timer3 := provider.StartTimer("operation_duration_seconds", labels)
 	timer3.StopWithLabels(nil)
 
-	// Verify histogram was created
 	if len(provider.histograms) != 1 {
 		t.Errorf("Expected 1 histogram, got %d", len(provider.histograms))
 	}
@@ -164,7 +148,6 @@ func TestPrometheusProviderHTTPHandler(t *testing.T) {
 		Namespace: "test",
 	})
 
-	// Add some metrics
 	provider.IncrementCounter("test_counter", map[string]string{"label": "value"})
 	provider.SetGauge("test_gauge", 42.0, nil)
 
@@ -173,7 +156,6 @@ func TestPrometheusProviderHTTPHandler(t *testing.T) {
 		t.Fatal("GetHandler() returned nil")
 	}
 
-	// Test HTTP handler
 	req := httptest.NewRequest("GET", "/metrics", nil)
 	w := httptest.NewRecorder()
 
@@ -185,7 +167,6 @@ func TestPrometheusProviderHTTPHandler(t *testing.T) {
 
 	body := w.Body.String()
 
-	// Check for Prometheus format
 	if !strings.Contains(body, "test_test_counter") {
 		t.Error("Response should contain counter metric")
 	}
@@ -194,7 +175,6 @@ func TestPrometheusProviderHTTPHandler(t *testing.T) {
 		t.Error("Response should contain gauge metric")
 	}
 
-	// Check content type
 	contentType := w.Header().Get("Content-Type")
 	if !strings.Contains(contentType, "text/plain") && !strings.Contains(contentType, "application/openmetrics-text") {
 		t.Errorf("Unexpected content type: %s", contentType)
@@ -206,16 +186,13 @@ func TestPrometheusProviderShutdown(t *testing.T) {
 		Namespace: "test",
 	})
 
-	// Add some metrics
 	provider.IncrementCounter("test_counter", nil)
 	provider.SetGauge("test_gauge", 1.0, nil)
 
-	// Verify metrics exist
 	if len(provider.counters) == 0 || len(provider.gauges) == 0 {
 		t.Error("Expected metrics to be created")
 	}
 
-	// Test shutdown
 	ctx := context.Background()
 	err := provider.Shutdown(ctx)
 
@@ -301,7 +278,6 @@ func TestPrometheusProviderGlobalLabels(t *testing.T) {
 	}
 	provider := NewPrometheusProvider(config)
 
-	// Add metric with local labels
 	localLabels := map[string]string{
 		"method": "GET",
 		"env":    "override", // This should override global label
@@ -309,7 +285,6 @@ func TestPrometheusProviderGlobalLabels(t *testing.T) {
 
 	provider.IncrementCounter("requests_total", localLabels)
 
-	// Test that handler includes metrics
 	handler := provider.GetHandler()
 	req := httptest.NewRequest("GET", "/metrics", nil)
 	w := httptest.NewRecorder()
@@ -329,12 +304,10 @@ func TestPrometheusProviderErrorHandling(t *testing.T) {
 		Namespace: "test",
 	})
 
-	// Test with empty metric name (should not panic)
 	provider.IncrementCounter("", nil)
 	provider.RecordHistogram("", 1.0, nil)
 	provider.SetGauge("", 1.0, nil)
 
-	// Test timer with failed histogram creation
 	timer := provider.StartTimer("", nil)
 	if timer == nil {
 		t.Error("StartTimer should return a timer even if histogram creation fails")

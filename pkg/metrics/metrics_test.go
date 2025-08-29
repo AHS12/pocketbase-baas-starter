@@ -50,8 +50,6 @@ func TestNewProvider(t *testing.T) {
 				t.Fatal("NewProvider() returned nil")
 			}
 
-			// For now, we can only test that we get a provider back
-			// We'll test specific provider types in their respective test files
 			if tt.shouldBeNoOp {
 				// Test that it behaves like a no-op (doesn't panic)
 				provider.IncrementCounter("test", nil)
@@ -71,15 +69,12 @@ func TestNewProvider(t *testing.T) {
 }
 
 func TestSingletonPattern(t *testing.T) {
-	// Reset singleton before test
 	Reset()
 
-	// Verify not initialized
 	if IsInitialized() {
 		t.Error("Expected singleton to not be initialized")
 	}
 
-	// Set environment for test
 	os.Setenv("METRICS_PROVIDER", "disabled")
 	os.Setenv("METRICS_ENABLED", "false")
 	defer func() {
@@ -87,7 +82,6 @@ func TestSingletonPattern(t *testing.T) {
 		os.Unsetenv("METRICS_ENABLED")
 	}()
 
-	// Get instance multiple times
 	instance1 := GetInstance()
 	instance2 := GetInstance()
 
@@ -103,7 +97,6 @@ func TestSingletonPattern(t *testing.T) {
 }
 
 func TestInitializeProvider(t *testing.T) {
-	// Reset singleton before test
 	Reset()
 
 	config := Config{
@@ -111,7 +104,6 @@ func TestInitializeProvider(t *testing.T) {
 		Enabled:  false,
 	}
 
-	// Initialize with custom config
 	instance1 := InitializeProvider(config)
 	instance2 := GetInstance()
 
@@ -127,10 +119,8 @@ func TestInitializeProvider(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	// Reset singleton before test
 	Reset()
 
-	// Set environment for test
 	os.Setenv("METRICS_PROVIDER", "disabled")
 	os.Setenv("METRICS_ENABLED", "false")
 	defer func() {

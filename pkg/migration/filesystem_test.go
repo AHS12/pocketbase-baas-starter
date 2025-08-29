@@ -8,7 +8,6 @@ import (
 )
 
 func TestEnsureDirectoryExists(t *testing.T) {
-	// Test case 1: Existing directory
 	t.Run("ExistingDirectory", func(t *testing.T) {
 		tempDir := t.TempDir()
 		err := EnsureDirectoryExists(tempDir)
@@ -17,7 +16,6 @@ func TestEnsureDirectoryExists(t *testing.T) {
 		}
 	})
 
-	// Test case 2: Non-existent directory
 	t.Run("NonExistentDirectory", func(t *testing.T) {
 		tempDir := t.TempDir()
 		nonExistentDir := filepath.Join(tempDir, "nonexistent")
@@ -36,7 +34,6 @@ func TestEnsureDirectoryExists(t *testing.T) {
 func TestCheckFileExists(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Test case 1: Existing file
 	t.Run("ExistingFile", func(t *testing.T) {
 		testFile := filepath.Join(tempDir, "existing.go")
 		if err := os.WriteFile(testFile, []byte("content"), 0644); err != nil {
@@ -49,7 +46,6 @@ func TestCheckFileExists(t *testing.T) {
 		}
 	})
 
-	// Test case 2: Non-existent file
 	t.Run("NonExistentFile", func(t *testing.T) {
 		nonExistentFile := filepath.Join(tempDir, "nonexistent.go")
 		exists := CheckFileExists(nonExistentFile)
@@ -62,7 +58,6 @@ func TestCheckFileExists(t *testing.T) {
 func TestWriteMigrationFile(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Test case 1: Write to new file
 	t.Run("WriteNewFile", func(t *testing.T) {
 		testFile := filepath.Join(tempDir, "new_migration.go")
 		content := "package migrations\n\n// Test migration"
@@ -72,7 +67,6 @@ func TestWriteMigrationFile(t *testing.T) {
 			t.Errorf("Expected no error writing new file, got: %v", err)
 		}
 
-		// Verify file was created with correct content
 		writtenContent, err := os.ReadFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read written file: %v", err)
@@ -83,16 +77,13 @@ func TestWriteMigrationFile(t *testing.T) {
 		}
 	})
 
-	// Test case 2: Attempt to overwrite existing file
 	t.Run("OverwriteExistingFile", func(t *testing.T) {
 		testFile := filepath.Join(tempDir, "existing_migration.go")
 
-		// Create existing file
 		if err := os.WriteFile(testFile, []byte("existing content"), 0644); err != nil {
 			t.Fatalf("Failed to create existing file: %v", err)
 		}
 
-		// Attempt to write to existing file
 		err := WriteMigrationFile(testFile, "new content")
 		if err == nil {
 			t.Error("Expected error when trying to overwrite existing file")
@@ -103,7 +94,6 @@ func TestWriteMigrationFile(t *testing.T) {
 		}
 	})
 
-	// Test case 3: Write to non-existent directory
 	t.Run("NonExistentDirectory", func(t *testing.T) {
 		nonExistentDir := filepath.Join(tempDir, "nonexistent")
 		testFile := filepath.Join(nonExistentDir, "migration.go")
