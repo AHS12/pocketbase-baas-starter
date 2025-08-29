@@ -66,3 +66,9 @@ func (jm *JobManager) IsInitialized() bool {
 	defer jm.mu.RUnlock()
 	return jm.initialized
 }
+
+// ResetJobManager resets the singleton for testing purposes
+func ResetJobManager() {
+	once = sync.Once{}
+	globalJobManager = nil
+}

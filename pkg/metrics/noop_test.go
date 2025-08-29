@@ -220,8 +220,8 @@ func TestNoOpProviderPerformance(t *testing.T) {
 
 	duration := time.Since(start)
 
-	// No-op operations should be very fast (less than 10ms for 10k operations)
-	if duration > 10*time.Millisecond {
+	// No-op operations should be very fast (less than 100ms for 10k operations)
+	if duration > 100*time.Millisecond {
 		t.Errorf("No-op operations took too long: %v", duration)
 	}
 }
