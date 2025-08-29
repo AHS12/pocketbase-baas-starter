@@ -31,7 +31,6 @@ func TestHandleSeedUsersCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Test that the function handles panics gracefully
 			defer func() {
 				if r := recover(); r != nil {
 					t.Logf("HandleSeedUsersCommand panicked as expected: %v", r)
@@ -71,7 +70,6 @@ func TestHandleSeedUsersWithRoleCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Test that the function handles panics gracefully
 			defer func() {
 				if r := recover(); r != nil {
 					t.Logf("HandleSeedUsersWithRoleCommand panicked as expected: %v", r)
@@ -87,7 +85,6 @@ func TestHandleSeedUsersCommandWithNilApp(t *testing.T) {
 	cmd := &cobra.Command{}
 	args := []string{"5"}
 
-	// Test that the function handles nil app gracefully
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("HandleSeedUsersCommand with nil app panicked as expected: %v", r)

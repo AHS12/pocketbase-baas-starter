@@ -8,7 +8,6 @@ import (
 )
 
 func TestLoadConfig(t *testing.T) {
-	// Save original environment
 	originalEnv := make(map[string]string)
 	envVars := []string{
 		"METRICS_PROVIDER", "METRICS_ENABLED", "METRICS_NAMESPACE", "METRICS_LABELS",
@@ -21,7 +20,6 @@ func TestLoadConfig(t *testing.T) {
 		os.Unsetenv(env)
 	}
 
-	// Restore environment after test
 	defer func() {
 		for _, env := range envVars {
 			if val, exists := originalEnv[env]; exists {
@@ -162,7 +160,6 @@ func TestLoadConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set environment variables
 			for key, value := range tt.envVars {
 				os.Setenv(key, value)
 			}
@@ -173,7 +170,6 @@ func TestLoadConfig(t *testing.T) {
 				t.Errorf("LoadConfig() = %+v, expected %+v", config, tt.expected)
 			}
 
-			// Clean up environment variables
 			for key := range tt.envVars {
 				os.Unsetenv(key)
 			}

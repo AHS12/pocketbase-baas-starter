@@ -12,7 +12,6 @@ func TestHandleDBSeedCommand(t *testing.T) {
 	cmd := &cobra.Command{}
 	args := []string{}
 
-	// Test that the function handles panics gracefully
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("HandleDBSeedCommand panicked as expected: %v", r)
@@ -26,7 +25,6 @@ func TestHandleDBSeedCommandWithNilApp(t *testing.T) {
 	cmd := &cobra.Command{}
 	args := []string{}
 
-	// Test that the function handles nil app gracefully
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("HandleDBSeedCommand with nil app panicked as expected: %v", r)
@@ -40,7 +38,6 @@ func TestHandleDBSeedCommandWithNilCmd(t *testing.T) {
 	app := pocketbase.New()
 	args := []string{}
 
-	// Test that the function handles nil command gracefully
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("HandleDBSeedCommand with nil cmd panicked as expected: %v", r)
@@ -54,7 +51,6 @@ func TestHandleDBSeedCommandWithNilArgs(t *testing.T) {
 	app := pocketbase.New()
 	cmd := &cobra.Command{}
 
-	// Test that the function handles nil args gracefully
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("HandleDBSeedCommand with nil args panicked as expected: %v", r)

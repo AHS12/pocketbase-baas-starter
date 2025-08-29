@@ -8,7 +8,6 @@ import (
 )
 
 func TestGetJobManager(t *testing.T) {
-	// Reset singleton for testing
 	once = sync.Once{}
 	globalJobManager = nil
 
@@ -27,7 +26,6 @@ func TestGetJobManager(t *testing.T) {
 }
 
 func TestJobManager_Initialize(t *testing.T) {
-	// Reset singleton for testing
 	once = sync.Once{}
 	globalJobManager = nil
 
@@ -52,7 +50,6 @@ func TestJobManager_Initialize(t *testing.T) {
 }
 
 func TestJobManager_GetProcessor(t *testing.T) {
-	// Reset singleton for testing
 	once = sync.Once{}
 	globalJobManager = nil
 
@@ -78,7 +75,6 @@ func TestJobManager_GetProcessor(t *testing.T) {
 }
 
 func TestJobManager_IsInitialized(t *testing.T) {
-	// Reset singleton for testing
 	once = sync.Once{}
 	globalJobManager = nil
 

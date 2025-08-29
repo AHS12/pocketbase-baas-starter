@@ -8,10 +8,8 @@ import (
 )
 
 func TestRegisterHooks(t *testing.T) {
-	// Create a test PocketBase app
 	app := pocketbase.New()
 
-	// Test that RegisterHooks doesn't panic
 	defer func() {
 		if r := recover(); r != nil {
 			t.Fatalf("RegisterHooks panicked: %v", r)
@@ -49,7 +47,6 @@ func TestRegisterHooks(t *testing.T) {
 func TestHookRegistrationFunctions(t *testing.T) {
 	app := pocketbase.New()
 
-	// Test each registration function individually
 	tests := []struct {
 		name string
 		fn   func(*pocketbase.PocketBase) error
@@ -80,20 +77,17 @@ func TestHookRegistrationFunctions(t *testing.T) {
 func TestHooksWithMetricsInstrumentation(t *testing.T) {
 	app := pocketbase.New()
 
-	// Initialize metrics with no-op provider for testing
 	metrics.InitializeProvider(metrics.Config{
 		Provider: metrics.ProviderDisabled,
 		Enabled:  false,
 	})
 
-	// Test that hooks with metrics instrumentation don't panic during registration
 	defer func() {
 		if r := recover(); r != nil {
 			t.Fatalf("Hooks with metrics instrumentation panicked: %v", r)
 		}
 	}()
 
-	// Test the instrumented hooks specifically
 	err := registerRecordHooks(app) // Contains user_create_settings instrumentation
 	if err != nil {
 		t.Fatalf("registerRecordHooks failed: %v", err)
@@ -104,6 +98,5 @@ func TestHooksWithMetricsInstrumentation(t *testing.T) {
 		t.Fatalf("registerMailerHooks failed: %v", err)
 	}
 
-	// Reset metrics for cleanup
 	metrics.Reset()
 }

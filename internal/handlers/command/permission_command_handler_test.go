@@ -9,8 +9,6 @@ import (
 )
 
 func TestHandleSyncPermissionsCommand(t *testing.T) {
-	// This test verifies the command executes without crashing
-	// In a real scenario, we'd mock the database operations
 	app := pocketbase.New()
 	cmd := &cobra.Command{}
 	args := []string{}
@@ -19,7 +17,6 @@ func TestHandleSyncPermissionsCommand(t *testing.T) {
 	// it attempts to process the expected number of permissions
 	defer func() {
 		if r := recover(); r != nil {
-			// Expected to panic due to missing database collections
 			t.Logf("Command panicked as expected due to missing database: %v", r)
 		}
 	}()
@@ -31,7 +28,6 @@ func TestHandleSyncPermissionsCommandWithNilApp(t *testing.T) {
 	cmd := &cobra.Command{}
 	args := []string{}
 
-	// Test that the function handles nil app gracefully
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("HandleSyncPermissionsCommand with nil app panicked as expected: %v", r)
@@ -44,7 +40,6 @@ func TestHandleSyncPermissionsCommandWithNilApp(t *testing.T) {
 func TestFindPermissionBySlug(t *testing.T) {
 	app := pocketbase.New()
 
-	// Test that findPermissionBySlug handles missing collection gracefully
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("findPermissionBySlug panicked as expected: %v", r)

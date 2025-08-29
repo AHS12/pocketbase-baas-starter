@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// MockMetricsProvider is a test implementation of MetricsProvider
 type MockMetricsProvider struct {
 	counters   map[string]float64
 	histograms map[string][]float64
@@ -18,7 +17,6 @@ type MockMetricsProvider struct {
 	mu         sync.RWMutex
 }
 
-// NewMockMetricsProvider creates a new mock metrics provider
 func NewMockMetricsProvider() *MockMetricsProvider {
 	return &MockMetricsProvider{
 		counters:   make(map[string]float64),
@@ -85,23 +83,19 @@ func (m *MockMetricsProvider) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// MockTimer implements Timer for testing
 type MockTimer struct {
 	provider *MockMetricsProvider
 	name     string
 }
 
 func (t *MockTimer) Stop() {
-	// Record a small duration for testing
 	t.provider.RecordHistogram(t.name, 0.001, nil)
 }
 
 func (t *MockTimer) StopWithLabels(labels map[string]string) {
-	// Record a small duration for testing
 	t.provider.RecordHistogram(t.name, 0.001, labels)
 }
 
-// Helper methods for testing
 func (m *MockMetricsProvider) GetCounterValue(name string) float64 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

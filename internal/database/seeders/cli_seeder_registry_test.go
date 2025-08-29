@@ -14,7 +14,6 @@ func TestGetAllCLISeederFunctions(t *testing.T) {
 		t.Error("GetAllCLISeederFunctions should return at least one function")
 	}
 
-	// Check that all functions have required fields
 	for i, fn := range functions {
 		if fn.Name == "" {
 			t.Errorf("Function %d should have a name", i)
@@ -51,7 +50,6 @@ func TestGetAllCLISeederFunctions(t *testing.T) {
 func TestRunAllCLISeederFunctions(t *testing.T) {
 	app := pocketbase.New()
 
-	// Test that RunAllCLISeederFunctions handles panics gracefully
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("RunAllCLISeederFunctions panicked as expected: %v", r)
@@ -87,7 +85,6 @@ func TestCLISeederFunction(t *testing.T) {
 		t.Error("CLISeederFunction Function not set correctly")
 	}
 
-	// Test function execution
 	app := pocketbase.New()
 	err := fn.Function(app)
 	if err != nil {

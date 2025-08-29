@@ -8,10 +8,8 @@ import (
 )
 
 func TestScanExistingMigrations(t *testing.T) {
-	// Create a temporary directory for testing
 	tempDir := t.TempDir()
 
-	// Test case 1: Empty directory
 	t.Run("EmptyDirectory", func(t *testing.T) {
 		migrations, err := ScanExistingMigrations(tempDir)
 		if err != nil {
@@ -22,7 +20,6 @@ func TestScanExistingMigrations(t *testing.T) {
 		}
 	})
 
-	// Test case 2: Directory with valid migration files
 	t.Run("ValidMigrationFiles", func(t *testing.T) {
 		// Create test migration files
 		testFiles := []string{
@@ -47,7 +44,6 @@ func TestScanExistingMigrations(t *testing.T) {
 			t.Fatalf("Expected 3 migrations, got: %d", len(migrations))
 		}
 
-		// Check if migrations are sorted by number
 		expectedNumbers := []int{1, 2, 5}
 		for i, migration := range migrations {
 			if migration.Number != expectedNumbers[i] {
@@ -55,7 +51,6 @@ func TestScanExistingMigrations(t *testing.T) {
 			}
 		}
 
-		// Check specific migration details
 		if migrations[0].Name != "init" {
 			t.Errorf("Expected migration name 'init', got: %s", migrations[0].Name)
 		}
@@ -64,7 +59,6 @@ func TestScanExistingMigrations(t *testing.T) {
 		}
 	})
 
-	// Test case 3: Directory with invalid files (should be ignored)
 	t.Run("InvalidFiles", func(t *testing.T) {
 		// Clean the temp directory
 		os.RemoveAll(tempDir)
@@ -72,7 +66,6 @@ func TestScanExistingMigrations(t *testing.T) {
 			t.Fatalf("Failed to create temp directory: %v", err)
 		}
 
-		// Create invalid files that should be ignored
 		invalidFiles := []string{
 			"README.md",
 			"migration.txt",
@@ -87,7 +80,6 @@ func TestScanExistingMigrations(t *testing.T) {
 			}
 		}
 
-		// Add one valid file
 		validFile := filepath.Join(tempDir, "0001_valid.go")
 		if err := os.WriteFile(validFile, []byte("package migrations"), 0644); err != nil {
 			t.Fatalf("Failed to create valid test file: %v", err)
@@ -107,7 +99,6 @@ func TestScanExistingMigrations(t *testing.T) {
 		}
 	})
 
-	// Test case 4: Non-existent directory
 	t.Run("NonExistentDirectory", func(t *testing.T) {
 		nonExistentDir := filepath.Join(tempDir, "nonexistent")
 		_, err := ScanExistingMigrations(nonExistentDir)
@@ -122,7 +113,6 @@ func TestScanExistingMigrations(t *testing.T) {
 }
 
 func TestGetNextMigrationNumber(t *testing.T) {
-	// Test case 1: Empty migrations list
 	t.Run("EmptyMigrations", func(t *testing.T) {
 		migrations := []MigrationInfo{}
 		nextNumber := GetNextMigrationNumber(migrations)
@@ -131,7 +121,6 @@ func TestGetNextMigrationNumber(t *testing.T) {
 		}
 	})
 
-	// Test case 2: Sequential migrations
 	t.Run("SequentialMigrations", func(t *testing.T) {
 		migrations := []MigrationInfo{
 			{Number: 1, Name: "init"},
@@ -144,7 +133,6 @@ func TestGetNextMigrationNumber(t *testing.T) {
 		}
 	})
 
-	// Test case 3: Non-sequential migrations (gaps)
 	t.Run("NonSequentialMigrations", func(t *testing.T) {
 		migrations := []MigrationInfo{
 			{Number: 1, Name: "init"},
@@ -157,7 +145,6 @@ func TestGetNextMigrationNumber(t *testing.T) {
 		}
 	})
 
-	// Test case 4: Unordered migrations
 	t.Run("UnorderedMigrations", func(t *testing.T) {
 		migrations := []MigrationInfo{
 			{Number: 5, Name: "add_settings"},

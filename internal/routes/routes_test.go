@@ -10,12 +10,10 @@ import (
 func TestRegisterCustom(t *testing.T) {
 	app := pocketbase.New()
 
-	// Create a mock serve event with minimal setup
 	event := &core.ServeEvent{
 		App: app,
 	}
 
-	// Test that RegisterCustom handles nil router gracefully
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("RegisterCustom panicked as expected due to nil router: %v", r)
@@ -72,13 +70,11 @@ func TestRouteStructure(t *testing.T) {
 }
 
 func TestRouteMethodSupport(t *testing.T) {
-	// Test different HTTP methods
 	supportedMethods := []string{"GET", "POST", "PUT", "DELETE", "PATCH"}
 
 	for _, method := range supportedMethods {
 		t.Run(method, func(t *testing.T) {
 			// This test verifies that the method switch statement works
-			// We can't easily test the actual registration without complex setup
 			if method == "" {
 				t.Error("Method should not be empty")
 			}

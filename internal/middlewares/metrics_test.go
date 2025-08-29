@@ -37,7 +37,6 @@ func TestRequireMetricsFunc(t *testing.T) {
 	provider := metrics.NewNoOpProvider()
 	middleware := NewMetricsMiddleware(provider)
 
-	// Test function wrapper
 	metricsFunc := middleware.RequireMetricsFunc()
 	if metricsFunc == nil {
 		t.Fatal("RequireMetricsFunc() returned nil function")
@@ -47,7 +46,6 @@ func TestRequireMetricsFunc(t *testing.T) {
 func TestRequireMetricsFuncWithNilProvider(t *testing.T) {
 	middleware := NewMetricsMiddleware(nil)
 
-	// Test function wrapper with nil provider
 	metricsFunc := middleware.RequireMetricsFunc()
 	if metricsFunc == nil {
 		t.Fatal("RequireMetricsFunc() with nil provider returned nil function")
@@ -57,7 +55,6 @@ func TestRequireMetricsFuncWithNilProvider(t *testing.T) {
 func TestRequireMetrics(t *testing.T) {
 	provider := metrics.NewNoOpProvider()
 
-	// Test convenience function
 	metricsFunc := RequireMetrics(provider)
 	if metricsFunc == nil {
 		t.Fatal("RequireMetrics() returned nil function")
@@ -65,7 +62,6 @@ func TestRequireMetrics(t *testing.T) {
 }
 
 func TestRequireMetricsWithNilProvider(t *testing.T) {
-	// Test convenience function with nil provider
 	metricsFunc := RequireMetrics(nil)
 	if metricsFunc == nil {
 		t.Fatal("RequireMetrics() with nil provider returned nil function")
@@ -75,7 +71,6 @@ func TestRequireMetricsWithNilProvider(t *testing.T) {
 func TestInstrumentHandler(t *testing.T) {
 	provider := metrics.NewNoOpProvider()
 
-	// Test handler instrumentation
 	testHandler := func(e *core.RequestEvent) error {
 		return nil
 	}
@@ -87,7 +82,6 @@ func TestInstrumentHandler(t *testing.T) {
 }
 
 func TestInstrumentHandlerWithNilProvider(t *testing.T) {
-	// Test handler instrumentation with nil provider
 	testHandler := func(e *core.RequestEvent) error {
 		return nil
 	}
@@ -102,12 +96,10 @@ func TestHelperFunctions(t *testing.T) {
 	provider := metrics.NewNoOpProvider()
 	labels := map[string]string{"test": "value"}
 
-	// Test that helper functions don't panic
 	RecordCustomMetric(provider, "custom_metric", 1.5, labels)
 	IncrementCustomCounter(provider, "custom_counter", labels)
 	SetCustomGauge(provider, "custom_gauge", 42.0, labels)
 
-	// Test with nil provider
 	RecordCustomMetric(nil, "custom_metric", 1.5, labels)
 	IncrementCustomCounter(nil, "custom_counter", labels)
 	SetCustomGauge(nil, "custom_gauge", 42.0, labels)

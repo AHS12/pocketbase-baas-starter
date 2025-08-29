@@ -77,13 +77,11 @@ func TestCronExecutionContext_LogMethods(t *testing.T) {
 	app := pocketbase.New()
 	ctx := NewCronExecutionContext(app, "test-cron")
 
-	// Test that log methods don't panic
 	ctx.LogStart("Starting test operation")
 	ctx.LogEnd("Test operation completed")
 	ctx.LogError(fmt.Errorf("test error"), "Test error occurred")
 	ctx.LogDebug(map[string]string{"key": "value"}, "Debug information")
 
-	// Verify context maintains state
 	if ctx.CronID != "test-cron" {
 		t.Errorf("Expected CronID to remain 'test-cron', got %q", ctx.CronID)
 	}
@@ -93,7 +91,6 @@ func TestWithRecovery(t *testing.T) {
 	app := pocketbase.New()
 	cronID := "test-recovery"
 
-	// Test normal execution
 	executed := false
 	normalFunc := func() {
 		executed = true
@@ -106,14 +103,12 @@ func TestWithRecovery(t *testing.T) {
 		t.Error("Expected wrapped function to execute normally")
 	}
 
-	// Test panic recovery
 	panicFunc := func() {
 		panic("test panic")
 	}
 
 	wrappedPanicFunc := WithRecovery(app, cronID, panicFunc)
 
-	// This should not panic
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Expected panic to be recovered, but got panic: %v", r)

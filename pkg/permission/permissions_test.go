@@ -37,13 +37,11 @@ func TestPermissionConstants(t *testing.T) {
 func TestGetAllPermissions(t *testing.T) {
 	permissions := GetAllPermissions()
 
-	// Test that we get the expected number of permissions
 	expectedCount := 14 // Updated to include CacheClear permission
 	if len(permissions) != expectedCount {
 		t.Errorf("Expected %d permissions, got %d", expectedCount, len(permissions))
 	}
 
-	// Test that all permissions have required fields
 	for i, perm := range permissions {
 		if perm.Slug == "" {
 			t.Errorf("Permission at index %d has empty Slug", i)
@@ -56,7 +54,6 @@ func TestGetAllPermissions(t *testing.T) {
 		}
 	}
 
-	// Test specific permissions exist
 	expectedPermissions := map[string]struct {
 		name        string
 		description string
@@ -77,13 +74,11 @@ func TestGetAllPermissions(t *testing.T) {
 		RoleDelete:           {"Delete Role", "Can delete roles"},
 	}
 
-	// Create a map of returned permissions for easy lookup
 	returnedPerms := make(map[string]PermissionDefinition)
 	for _, perm := range permissions {
 		returnedPerms[perm.Slug] = perm
 	}
 
-	// Verify each expected permission exists with correct details
 	for slug, expected := range expectedPermissions {
 		perm, exists := returnedPerms[slug]
 		if !exists {
@@ -102,7 +97,6 @@ func TestGetAllPermissions(t *testing.T) {
 }
 
 func TestPermissionDefinitionStruct(t *testing.T) {
-	// Test that PermissionDefinition struct can be created and accessed
 	perm := PermissionDefinition{
 		Slug:        "test.permission",
 		Name:        "Test Permission",

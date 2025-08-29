@@ -7,10 +7,8 @@ import (
 )
 
 func TestCacheBasicFunctionality(t *testing.T) {
-	// Test cache invalidation
 	InvalidateCache()
 
-	// Check that cache keys are cleared
 	if _, found := cache.GetInstance().Get(SwaggerSpecKey); found {
 		t.Error("Expected swagger spec cache to be cleared after invalidation")
 	}
@@ -21,10 +19,8 @@ func TestCacheBasicFunctionality(t *testing.T) {
 }
 
 func TestCacheStatus(t *testing.T) {
-	// Create a basic generator
 	generator := NewGenerator(nil, DefaultConfig())
 
-	// Test initial status
 	status := GetCacheStatus(generator)
 
 	if status["cached"].(bool) {
@@ -38,17 +34,13 @@ func TestCacheStatus(t *testing.T) {
 }
 
 func TestCacheTTL(t *testing.T) {
-	// Save original TTL
 	originalTTL := cacheTTL
 	defer func() { cacheTTL = originalTTL }()
 
-	// Set a very short TTL for testing
 	cacheTTL = 1 * time.Millisecond
 
-	// Set some fake cache data
 	cache.GetInstance().SetWithExpiration(SwaggerSpecKey, &CombinedOpenAPISpec{}, 1*time.Millisecond)
 
-	// Wait for TTL to expire
 	time.Sleep(2 * time.Millisecond)
 
 	// Check that cache is expired
@@ -58,10 +50,8 @@ func TestCacheTTL(t *testing.T) {
 }
 
 func TestCollectionChanges(t *testing.T) {
-	// Create a basic generator
 	generator := NewGenerator(nil, DefaultConfig())
 
-	// Test collection change detection
 	changed := hasCollectionsChanged(generator)
 
 	// Should be true initially (no previous hash)
@@ -69,7 +59,6 @@ func TestCollectionChanges(t *testing.T) {
 		t.Error("Expected collections to be considered changed initially")
 	}
 
-	// Test CheckAndInvalidateIfChanged
 	invalidated := CheckAndInvalidateIfChanged(generator)
 
 	// Should be true since collections changed
@@ -79,13 +68,11 @@ func TestCollectionChanges(t *testing.T) {
 }
 
 func TestCacheService(t *testing.T) {
-	// Test that it uses the centralized cache service
 	cacheService := cache.GetInstance()
 	if cacheService == nil {
 		t.Error("Expected to get the centralized cache service")
 	}
 
-	// Test cache key constants
 	expectedSpecKey := "swagger_spec"
 	if SwaggerSpecKey != expectedSpecKey {
 		t.Errorf("Expected spec key to be '%s', got '%s'", expectedSpecKey, SwaggerSpecKey)
@@ -98,7 +85,6 @@ func TestCacheService(t *testing.T) {
 }
 
 func TestGetCachedSpec(t *testing.T) {
-	// Clear any existing cache
 	InvalidateCache()
 
 	// Should return nil when no cache exists
@@ -107,7 +93,6 @@ func TestGetCachedSpec(t *testing.T) {
 		t.Error("Expected nil when no cache exists")
 	}
 
-	// Set a cached spec
 	testSpec := &CombinedOpenAPISpec{
 		OpenAPI: "3.0.0",
 		Info: Info{
@@ -117,7 +102,6 @@ func TestGetCachedSpec(t *testing.T) {
 	}
 	cache.GetInstance().SetWithExpiration(SwaggerSpecKey, testSpec, 5*time.Minute)
 
-	// Should return the cached spec
 	cachedSpec := getCachedSpec()
 	if cachedSpec == nil {
 		t.Error("Expected cached spec to be returned")
